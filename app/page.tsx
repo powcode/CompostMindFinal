@@ -198,7 +198,7 @@ export default function HomePage() {
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
           <div className="logo-icon">
-            <img src="/assets/logo.png" alt="CompostMind Logo" />
+            <img src="assets/logo.png" alt="CompostMind Logo" />
           </div>
           <div className="logo-text">
             <span className="brand-name">CompostMind</span>
@@ -237,7 +237,7 @@ export default function HomePage() {
         </div>
 
         <div className="sidebar-illustration">
-          <img src="/assets/compost-bin.png" alt="Compost Bin" />
+          <img src="assets/compost-bin.png" alt="Compost Bin" />
         </div>
 
         <div className="sidebar-footer">
