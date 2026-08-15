@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import './home.css';
 
 export default function HomePage() {
   const router = useRouter();
@@ -18,10 +19,15 @@ export default function HomePage() {
   const [detectedItems, setDetectedItems] = useState<{name: string, quantity: number}[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
+  // State Halaman Template Tab ('home' | 'history' | 'tips')
+  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'tips'>('home');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   // Refs untuk Live Camera
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ==========================================
   // LOGIKA LIVE CAMERA (getUserMedia)
@@ -57,7 +63,7 @@ export default function HomePage() {
 
   // Efek: Nyalakan kamera saat mode 'camera' aktif, matikan saat pindah mode/unmount
   useEffect(() => {
-    if (inputMode === 'camera' && !imagePreview) {
+    if (inputMode === 'camera' && !imagePreview && activeTab === 'home') {
       startCamera();
     } else {
       stopCamera();
@@ -67,7 +73,7 @@ export default function HomePage() {
     return () => {
       stopCamera();
     };
-  }, [inputMode, imagePreview]);
+  }, [inputMode, imagePreview, activeTab]);
 
   // Handle Tombol "Jepret / Capture"
   const handleCapture = () => {
@@ -76,8 +82,8 @@ export default function HomePage() {
       const canvas = canvasRef.current;
       
       // Set ukuran canvas sesuai ukuran video asli
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
       
       // Gambar frame video saat ini ke canvas
       const context = canvas.getContext('2d');
@@ -179,111 +185,271 @@ export default function HomePage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 md:p-8 pt-10 bg-gray-50">
-      <div className="w-full max-w-md text-center mb-6">
-        <h1 className="text-3xl font-bold text-green-700">🌱 CompostMind</h1>
-        <p className="text-gray-600 text-sm mt-1">Scan sisa makananmu, biarkan AI memandu pengomposannya.</p>
-      </div>
+    <main className="cm-home min-h-screen flex">
+      {/* SIDEBAR OVERLAY FOR MOBILE */}
+      {isSidebarOpen && (
+        <div 
+          className="sidebar-overlay active" 
+          onClick={() => setIsSidebarOpen(false)} 
+        />
+      )}
 
-      <div className="bg-white p-4 md:p-6 rounded-3xl shadow-xl w-full max-w-md border border-gray-100 overflow-hidden">
-        
-        {/* Toggle Mode: Kamera vs Upload */}
-        {!imagePreview && (
-          <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
-            <button 
-              onClick={() => { setInputMode('camera'); setImagePreview(null); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition ${inputMode === 'camera' ? 'bg-white shadow text-green-700' : 'text-gray-500'}`}
-            >
-               Kamera Langsung
-            </button>
-            <button 
-              onClick={() => { setInputMode('upload'); stopCamera(); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition ${inputMode === 'upload' ? 'bg-white shadow text-green-700' : 'text-gray-500'}`}
-            >
-               Upload Foto
-            </button>
+      {/* SIDEBAR */}
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-logo">
+          <div className="logo-icon">
+            <img src="/assets/logo.png" alt="CompostMind Logo" />
           </div>
-        )}
-
-        {/* ========================================== */}
-        {/* AREA PREVIEW / KAMERA                      */}
-        {/* ========================================== */}
-        <div className="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden mb-4 flex items-center justify-center">
-          
-          {imagePreview ? (
-            // Tampilkan Gambar yang sudah dijepret / diupload
-            <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-          ) : inputMode === 'camera' ? (
-            // Tampilkan Live Video Stream
-            <>
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transform scale-x-[-1]" />
-              {/* Overlay panduan bidik */}
-              <div className="absolute inset-0 border-4 border-white/30 rounded-2xl pointer-events-none m-4"></div>
-              <div className="absolute bottom-4 left-0 right-0 text-center text-white text-xs font-medium drop-shadow-md bg-black/30 py-1 rounded-full mx-8">Arahkan ke sampah organik</div>
-            </>
-          ) : (
-            // Tampilan Placeholder Upload
-            <div className="text-gray-500 flex flex-col items-center">
-              <span className="text-4xl mb-2">🖼️</span>
-              <span className="text-sm">Pilih file di bawah</span>
-            </div>
-          )}
-
-          {/* Canvas tersembunyi untuk proses capture gambar dari video */}
-          <canvas ref={canvasRef} className="hidden" />
+          <div className="logo-text">
+            <span className="brand-name">CompostMind</span>
+            <span className="brand-sub">Smart Composting Assistant</span>
+          </div>
         </div>
 
-        {/* ========================================== */}
-        {/* TOMBOL AKSI                                */}
-        {/* ========================================== */}
-        <div className="space-y-3">
-          
-          {imagePreview ? (
-            // Jika sudah ada gambar, tampilkan tombol Deteksi & Foto Ulang
-            <div className="flex space-x-3">
+        <nav className="sidebar-nav">
+          <a 
+            className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} 
+            onClick={() => { setActiveTab('home'); setIsSidebarOpen(false); }}
+          >
+            <span className="nav-icon">🏠</span> Home
+          </a>
+          <a 
+            className={`nav-item ${activeTab === 'history' ? 'active' : ''}`} 
+            onClick={() => { setActiveTab('history'); setIsSidebarOpen(false); }}
+          >
+            <span className="nav-icon">🕐</span> History
+          </a>
+          <a 
+            className={`nav-item ${activeTab === 'tips' ? 'active' : ''}`} 
+            onClick={() => { setActiveTab('tips'); setIsSidebarOpen(false); }}
+          >
+            <span className="nav-icon">🌿</span> Tips
+          </a>
+        </nav>
+
+        <div className="sidebar-why">
+          <p className="why-title">Why Compost?</p>
+          <ul className="why-list">
+            <li><span>🌿</span> Reduce landfill waste</li>
+            <li><span>🌱</span> Improve soil health</li>
+            <li><span>🌍</span> Help the environment</li>
+          </ul>
+        </div>
+
+        <div className="sidebar-illustration">
+          <img src="/assets/compost-bin.png" alt="Compost Bin" />
+        </div>
+
+        <div className="sidebar-footer">
+          Made with ❤️ for<br/>a greener planet 🌍
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <div className="main-content">
+        {/* TOP BAR */}
+        <div className="topbar">
+          <button 
+            className="hamburger" 
+            id="hamburgerBtn" 
+            aria-label="Toggle menu"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          >
+            ☰
+          </button>
+          <div className="topbar-right">
+            <a href="#" className="about-link">ⓘ About</a>
+          </div>
+        </div>
+
+        {/* PAGE: HOME */}
+        <div className={`page ${activeTab === 'home' ? 'active' : ''}`} id="page-home">
+          <div className="page-header">
+            <h1 className="page-title">Welcome to CompostMind 🍃</h1>
+            <p className="page-subtitle">
+              Upload a photo of your waste and let AI identify whether it is{' '}
+              <strong className="compostable-label">Compostable</strong> or{' '}
+              <strong className="non-compostable-label">Non-Compostable.</strong>
+            </p>
+          </div>
+
+          {/* UPLOAD SECTION */}
+          <section className="card upload-section">
+            <div className="card-header">
+              <h2>Upload Waste Image</h2>
+            </div>
+
+            {/* Mode Toggle */}
+            <div className="mode-toggle">
               <button 
-                onClick={handleRetake}
-                className="flex-1 py-3 border border-gray-300 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition"
+                className={`mode-btn ${inputMode === 'upload' ? 'active' : ''}`} 
+                id="btn-upload" 
+                onClick={() => { setInputMode('upload'); stopCamera(); }}
               >
-                ↺ Ulangi
+                Upload Image
               </button>
               <button 
-                onClick={handleDetect}
-                disabled={isDetecting}
-                className={`flex-[2] py-3 rounded-xl font-bold text-white shadow-md transition flex justify-center items-center ${
-                  isDetecting ? 'bg-yellow-500 cursor-wait' : 'bg-green-600 hover:bg-green-700'
-                }`}
+                className={`mode-btn ${inputMode === 'camera' ? 'active' : ''}`} 
+                id="btn-camera" 
+                onClick={() => { setInputMode('camera'); setImagePreview(null); }}
               >
-                {isDetecting ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    AI Menganalisis...
-                  </>
-                ) : '🔍 Deteksi Sekarang'}
+                Scan
               </button>
             </div>
-          ) : inputMode === 'camera' ? (
-            // Tombol Jepret Besar ala Kamera
-            <button 
-              onClick={handleCapture}
-              className="w-full py-4 bg-white border-4 border-green-600 rounded-full flex items-center justify-center hover:bg-green-50 transition group"
-            >
-              <div className="w-16 h-16 bg-green-600 rounded-full group-hover:scale-95 transition-transform"></div>
-            </button>
-          ) : (
-            // Tombol Upload File
-            <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition">
-              <div className="flex flex-col items-center justify-center pt-2 pb-3">
-                <p className="text-sm text-gray-600 font-medium"><span className="text-green-600">Klik untuk upload</span> atau drag & drop</p>
-                <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG (MAX. 10MB)</p>
-              </div>
-              <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-            </label>
-          )}
 
+            {/* Upload Mode */}
+            {inputMode === 'upload' && (
+              <div className="upload-area" id="upload-mode">
+                <div 
+                  className="dropzone" 
+                  id="dropzone"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <div className="dropzone-inner">
+                    <p className="drop-text">Drag and drop an image here</p>
+                    <p className="drop-sub">or click to browse</p>
+                  </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    accept="image/jpg,image/jpeg,image/png" 
+                    onChange={handleFileChange} 
+                    hidden
+                  />
+                </div>
+                <p className="format-note">Supported formats: JPG, JPEG, PNG</p>
+              </div>
+            )}
+
+            {/* Camera Mode */}
+            {inputMode === 'camera' && (
+              <div className="camera-area" id="camera-mode">
+                {!imagePreview ? (
+                  <div className="camera-container" id="cameraContainer">
+                    <video ref={videoRef} autoPlay playsInline muted id="cameraVideo" />
+                    <div className="camera-overlay">
+                      <div className="camera-frame"></div>
+                    </div>
+                    <div className="camera-controls">
+                      <button className="capture-btn" id="captureBtn" onClick={handleCapture}>
+                        <span className="capture-ring"></span>
+                        <span className="capture-dot"></span>
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {/* Preview and Detect Controls */}
+            {imagePreview && (
+              <div className="mt-4 space-y-3">
+                <div className="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden flex items-center justify-center">
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex space-x-3 pt-2">
+                  <button 
+                    onClick={handleRetake}
+                    className="flex-1 py-3 border border-gray-300 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    ↺ Ulangi
+                  </button>
+                  <button 
+                    onClick={handleDetect}
+                    disabled={isDetecting}
+                    className={`flex-[2] py-3 rounded-xl font-bold text-white shadow-md transition flex justify-center items-center ${
+                      isDetecting ? 'bg-yellow-500 cursor-wait' : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                  >
+                    {isDetecting ? 'AI Menganalisis...' : '🔍 Deteksi Sekarang'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <canvas ref={canvasRef} className="hidden" />
+          </section>
+
+          {/* FOOTER BADGES */}
+          <div className="footer-badges">
+            <div className="badge-item">
+              <span className="badge-emoji">🌿</span>
+              <strong>Eco Friendly</strong>
+              <p>Small actions for a better planet.</p>
+            </div>
+            <div className="badge-item">
+              <span className="badge-emoji">🌱</span>
+              <strong>Reduce Waste</strong>
+              <p>Composting helps reduce household waste.</p>
+            </div>
+            <div className="badge-item">
+              <span className="badge-emoji">♻️</span>
+              <strong>Better Soil</strong>
+              <p>Nutrient-rich compost improves soil health.</p>
+            </div>
+          </div>
+
+          <div className="main-footer">
+            © 2026 CompostMind | Smart Composting Assistant
+          </div>
+        </div>
+
+        {/* PAGE: HISTORY */}
+        <div className={`page ${activeTab === 'history' ? 'active' : ''}`} id="page-history">
+          <div className="history-header">
+            <div>
+              <h1>Analysis History 🕑</h1>
+              <p>Your past waste analysis results.</p>
+            </div>
+          </div>
+          <div className="card">
+            <div className="history-list">
+              <div className="empty-state">
+                <div className="empty-icon">📋</div>
+                <p>No history yet. Analyze some waste first!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* PAGE: TIPS */}
+        <div className={`page ${activeTab === 'tips' ? 'active' : ''}`} id="page-tips">
+          <div className="page-header">
+            <h1 className="page-title">Composting Tips 🌿</h1>
+            <p className="page-subtitle">Learn how to compost better.</p>
+          </div>
+          <div className="tips-grid">
+            <div className="card tip-card">
+              <div className="tip-emoji">🍌</div>
+              <h3>Fruit & Veggie Scraps</h3>
+              <p>Always compostable. Cut them small for faster breakdown. Avoid oily or salted scraps.</p>
+            </div>
+            <div className="card tip-card">
+              <div className="tip-emoji">📰</div>
+              <h3>Paper & Cardboard</h3>
+              <p>Shredded paper and torn cardboard are excellent brown materials. Avoid glossy paper.</p>
+            </div>
+            <div className="card tip-card">
+              <div className="tip-emoji">☕</div>
+              <h3>Coffee Grounds</h3>
+              <p>Coffee grounds and filters are great green material. They enrich compost with nitrogen.</p>
+            </div>
+            <div className="card tip-card">
+              <div className="tip-emoji">🚫</div>
+              <h3>Avoid These</h3>
+              <p>Meat, dairy, oily food, and pet waste are non-compostable and attract pests.</p>
+            </div>
+            <div className="card tip-card">
+              <div className="tip-emoji">💧</div>
+              <h3>Moisture Balance</h3>
+              <p>Keep compost as moist as a wrung-out sponge. Too dry = slow; too wet = smelly.</p>
+            </div>
+            <div className="card tip-card">
+              <div className="tip-emoji">🔄</div>
+              <h3>Turn Regularly</h3>
+              <p>Turn your pile every 1–2 weeks to aerate. Oxygen speeds up decomposition significantly.</p>
+            </div>
+          </div>
         </div>
       </div>
 
