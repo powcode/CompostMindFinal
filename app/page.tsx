@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import './home.css';
 
 export default function HomePage() {
   const router = useRouter();
@@ -19,9 +18,8 @@ export default function HomePage() {
   const [detectedItems, setDetectedItems] = useState<{name: string, quantity: number}[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // State Halaman Template Tab ('home' | 'history' | 'tips')
+  // State Tab untuk Mobile / Navigation View
   const [activeTab, setActiveTab] = useState<'home' | 'history' | 'tips'>('home');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Refs untuk Live Camera
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -34,7 +32,6 @@ export default function HomePage() {
   // ==========================================
   const startCamera = async () => {
     try {
-      // Minta izin akses kamera (utamakan kamera belakang 'environment' jika di HP)
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, 
         audio: false 
@@ -47,7 +44,7 @@ export default function HomePage() {
     } catch (err) {
       console.error("Gagal mengakses kamera:", err);
       alert("Tidak bisa mengakses kamera. Pastikan browser memiliki izin kamera, atau gunakan fitur Upload.");
-      setInputMode('upload'); // Fallback ke upload jika kamera ditolak/error
+      setInputMode('upload');
     }
   };
 
@@ -61,7 +58,6 @@ export default function HomePage() {
     }
   };
 
-  // Efek: Nyalakan kamera saat mode 'camera' aktif, matikan saat pindah mode/unmount
   useEffect(() => {
     if (inputMode === 'camera' && !imagePreview && activeTab === 'home') {
       startCamera();
@@ -69,7 +65,6 @@ export default function HomePage() {
       stopCamera();
     }
 
-    // Cleanup saat komponen dihancurkan (penting agar lampu kamera tidak menyala terus)
     return () => {
       stopCamera();
     };
@@ -81,19 +76,15 @@ export default function HomePage() {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
-      // Set ukuran canvas sesuai ukuran video asli
       canvas.width = video.videoWidth || 640;
       canvas.height = video.videoHeight || 480;
       
-      // Gambar frame video saat ini ke canvas
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Ubah canvas menjadi Data URL (Base64 image)
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8); // 0.8 = kualitas 80% agar size tidak terlalu besar
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setImagePreview(dataUrl);
-        stopCamera(); // Matikan kamera setelah dijepret untuk hemat baterai/resource
+        stopCamera();
       }
     }
   };
@@ -112,7 +103,7 @@ export default function HomePage() {
     }
   };
 
-  // Fungsi Reset (Jika user ingin foto ulang)
+  // Fungsi Reset
   const handleRetake = () => {
     setImagePreview(null);
     setShowModal(false);
@@ -130,9 +121,6 @@ export default function HomePage() {
     setIsDetecting(true);
 
     try {
-      // Karena imagePreview sekarang berupa Base64 Data URL (dari Canvas atau FileReader),
-      // Kita harus mengubahnya kembali menjadi Blob/File agar bisa dikirim via FormData ke Next.js API
-      
       const resBlob = await fetch(imagePreview);
       const blob = await resBlob.blob();
       const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
@@ -140,7 +128,6 @@ export default function HomePage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Panggil API Next.js
       const res = await fetch('/api/detect', {
         method: 'POST',
         body: formData,
@@ -151,8 +138,8 @@ export default function HomePage() {
       if (res.ok) {
         if (data.ingredients && data.ingredients.length > 0) {
           setDetectedItems(data.ingredients);
-          setSessionId(data.session_id); // Simpan session ID dari backend
-          setShowModal(true); // Munculkan Pop-up
+          setSessionId(data.session_id);
+          setShowModal(true);
         } else {
           alert('Tidak ada objek compostable yang terdeteksi. Coba foto yang lebih jelas atau dekat!');
         }
@@ -167,7 +154,6 @@ export default function HomePage() {
     }
   };
 
-  // Handle edit jumlah (+ / -) di dalam Pop-up
   const updateQuantity = (index: number, delta: number) => {
     const newItems = [...detectedItems];
     newItems[index].quantity += delta;
@@ -175,7 +161,6 @@ export default function HomePage() {
     setDetectedItems(newItems);
   };
 
-  // Handle tombol "Konfirmasi & Mulai Sesi"
   const handleConfirm = () => {
     if (sessionId) {
       router.push(`/composting/${sessionId}`);
@@ -185,311 +170,424 @@ export default function HomePage() {
   };
 
   return (
-    <main className="cm-home min-h-screen flex">
-      {/* SIDEBAR OVERLAY FOR MOBILE */}
-      {isSidebarOpen && (
-        <div 
-          className="sidebar-overlay active" 
-          onClick={() => setIsSidebarOpen(false)} 
-        />
-      )}
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 via-slate-50 to-white text-slate-800 flex flex-col font-sans">
+      
+      {/* CANVAS SENSE (HIDDEN) */}
+      <canvas ref={canvasRef} className="hidden" />
 
-      {/* SIDEBAR */}
-      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-logo">
-          <div className="logo-icon">
-            <img src="assets/logo.png" alt="CompostMind Logo" />
-          </div>
-          <div className="logo-text">
-            <span className="brand-name">CompostMind</span>
-            <span className="brand-sub">Smart Composting Assistant</span>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <a 
-            className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} 
-            onClick={() => { setActiveTab('home'); setIsSidebarOpen(false); }}
+      {/* SUB-NAVBAR TABS FOR HOME / HISTORY / TIPS */}
+      <div className="bg-white/60 backdrop-blur-sm border-b border-slate-200/60 sticky top-16 z-30">
+        <div className="max-w-5xl mx-auto px-4 flex justify-center sm:justify-start gap-2 py-2.5">
+          <button
+            onClick={() => setActiveTab('home')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'home'
+                ? 'bg-emerald-100 text-emerald-800 shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
           >
-            <span className="nav-icon">🏠</span> Home
-          </a>
-          <a 
-            className={`nav-item ${activeTab === 'history' ? 'active' : ''}`} 
-            onClick={() => { setActiveTab('history'); setIsSidebarOpen(false); }}
-          >
-            <span className="nav-icon">🕐</span> History
-          </a>
-          <a 
-            className={`nav-item ${activeTab === 'tips' ? 'active' : ''}`} 
-            onClick={() => { setActiveTab('tips'); setIsSidebarOpen(false); }}
-          >
-            <span className="nav-icon">🌿</span> Tips
-          </a>
-        </nav>
-
-        <div className="sidebar-why">
-          <p className="why-title">Why Compost?</p>
-          <ul className="why-list">
-            <li><span>🌿</span> Reduce landfill waste</li>
-            <li><span>🌱</span> Improve soil health</li>
-            <li><span>🌍</span> Help the environment</li>
-          </ul>
-        </div>
-
-        <div className="sidebar-illustration">
-          <img src="assets/compost-bin.png" alt="Compost Bin" />
-        </div>
-
-        <div className="sidebar-footer">
-          Made with ❤️ for<br/>a greener planet 🌍
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT */}
-      <div className="main-content">
-        {/* TOP BAR */}
-        <div className="topbar">
-          <button 
-            className="hamburger" 
-            id="hamburgerBtn" 
-            aria-label="Toggle menu"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          >
-            ☰
+            <span>🏠</span> Beranda Scanner
           </button>
-          <div className="topbar-right">
-            <a href="#" className="about-link">ⓘ About</a>
-          </div>
-        </div>
-
-        {/* PAGE: HOME */}
-        <div className={`page ${activeTab === 'home' ? 'active' : ''}`} id="page-home">
-          <div className="page-header">
-            <h1 className="page-title">Welcome to CompostMind 🍃</h1>
-            <p className="page-subtitle">
-              Upload a photo of your waste and let AI identify whether it is{' '}
-              <strong className="compostable-label">Compostable</strong> or{' '}
-              <strong className="non-compostable-label">Non-Compostable.</strong>
-            </p>
-          </div>
-
-          {/* UPLOAD SECTION */}
-          <section className="card upload-section">
-            <div className="card-header">
-              <h2>Upload Waste Image</h2>
-            </div>
-
-            {/* Mode Toggle */}
-            <div className="mode-toggle">
-              <button 
-                className={`mode-btn ${inputMode === 'upload' ? 'active' : ''}`} 
-                id="btn-upload" 
-                onClick={() => { setInputMode('upload'); stopCamera(); }}
-              >
-                Upload Image
-              </button>
-              <button 
-                className={`mode-btn ${inputMode === 'camera' ? 'active' : ''}`} 
-                id="btn-camera" 
-                onClick={() => { setInputMode('camera'); setImagePreview(null); }}
-              >
-                Scan
-              </button>
-            </div>
-
-            {/* Upload Mode */}
-            {inputMode === 'upload' && (
-              <div className="upload-area" id="upload-mode">
-                <div 
-                  className="dropzone" 
-                  id="dropzone"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <div className="dropzone-inner">
-                    <p className="drop-text">Drag and drop an image here</p>
-                    <p className="drop-sub">or click to browse</p>
-                  </div>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    accept="image/jpg,image/jpeg,image/png" 
-                    onChange={handleFileChange} 
-                    hidden
-                  />
-                </div>
-                <p className="format-note">Supported formats: JPG, JPEG, PNG</p>
-              </div>
-            )}
-
-            {/* Camera Mode */}
-            {inputMode === 'camera' && (
-              <div className="camera-area" id="camera-mode">
-                {!imagePreview ? (
-                  <div className="camera-container" id="cameraContainer">
-                    <video ref={videoRef} autoPlay playsInline muted id="cameraVideo" />
-                    <div className="camera-overlay">
-                      <div className="camera-frame"></div>
-                    </div>
-                    <div className="camera-controls">
-                      <button className="capture-btn" id="captureBtn" onClick={handleCapture}>
-                        <span className="capture-ring"></span>
-                        <span className="capture-dot"></span>
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )}
-
-            {/* Preview and Detect Controls */}
-            {imagePreview && (
-              <div className="mt-4 space-y-3">
-                <div className="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden flex items-center justify-center">
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex space-x-3 pt-2">
-                  <button 
-                    onClick={handleRetake}
-                    className="flex-1 py-3 border border-gray-300 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition"
-                  >
-                    ↺ Ulangi
-                  </button>
-                  <button 
-                    onClick={handleDetect}
-                    disabled={isDetecting}
-                    className={`flex-[2] py-3 rounded-xl font-bold text-white shadow-md transition flex justify-center items-center ${
-                      isDetecting ? 'bg-yellow-500 cursor-wait' : 'bg-green-600 hover:bg-green-700'
-                    }`}
-                  >
-                    {isDetecting ? 'AI Menganalisis...' : '🔍 Deteksi Sekarang'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <canvas ref={canvasRef} className="hidden" />
-          </section>
-
-          {/* FOOTER BADGES */}
-          <div className="footer-badges">
-            <div className="badge-item">
-              <span className="badge-emoji">🌿</span>
-              <strong>Eco Friendly</strong>
-              <p>Small actions for a better planet.</p>
-            </div>
-            <div className="badge-item">
-              <span className="badge-emoji">🌱</span>
-              <strong>Reduce Waste</strong>
-              <p>Composting helps reduce household waste.</p>
-            </div>
-            <div className="badge-item">
-              <span className="badge-emoji">♻️</span>
-              <strong>Better Soil</strong>
-              <p>Nutrient-rich compost improves soil health.</p>
-            </div>
-          </div>
-
-          <div className="main-footer">
-            © 2026 CompostMind | Smart Composting Assistant
-          </div>
-        </div>
-
-        {/* PAGE: HISTORY */}
-        <div className={`page ${activeTab === 'history' ? 'active' : ''}`} id="page-history">
-          <div className="history-header">
-            <div>
-              <h1>Analysis History 🕑</h1>
-              <p>Your past waste analysis results.</p>
-            </div>
-          </div>
-          <div className="card">
-            <div className="history-list">
-              <div className="empty-state">
-                <div className="empty-icon">📋</div>
-                <p>No history yet. Analyze some waste first!</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* PAGE: TIPS */}
-        <div className={`page ${activeTab === 'tips' ? 'active' : ''}`} id="page-tips">
-          <div className="page-header">
-            <h1 className="page-title">Composting Tips 🌿</h1>
-            <p className="page-subtitle">Learn how to compost better.</p>
-          </div>
-          <div className="tips-grid">
-            <div className="card tip-card">
-              <div className="tip-emoji">🍌</div>
-              <h3>Fruit & Veggie Scraps</h3>
-              <p>Always compostable. Cut them small for faster breakdown. Avoid oily or salted scraps.</p>
-            </div>
-            <div className="card tip-card">
-              <div className="tip-emoji">📰</div>
-              <h3>Paper & Cardboard</h3>
-              <p>Shredded paper and torn cardboard are excellent brown materials. Avoid glossy paper.</p>
-            </div>
-            <div className="card tip-card">
-              <div className="tip-emoji">☕</div>
-              <h3>Coffee Grounds</h3>
-              <p>Coffee grounds and filters are great green material. They enrich compost with nitrogen.</p>
-            </div>
-            <div className="card tip-card">
-              <div className="tip-emoji">🚫</div>
-              <h3>Avoid These</h3>
-              <p>Meat, dairy, oily food, and pet waste are non-compostable and attract pests.</p>
-            </div>
-            <div className="card tip-card">
-              <div className="tip-emoji">💧</div>
-              <h3>Moisture Balance</h3>
-              <p>Keep compost as moist as a wrung-out sponge. Too dry = slow; too wet = smelly.</p>
-            </div>
-            <div className="card tip-card">
-              <div className="tip-emoji">🔄</div>
-              <h3>Turn Regularly</h3>
-              <p>Turn your pile every 1–2 weeks to aerate. Oxygen speeds up decomposition significantly.</p>
-            </div>
-          </div>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'history'
+                ? 'bg-emerald-100 text-emerald-800 shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <span>🕐</span> Riwayat Scan
+          </button>
+          <button
+            onClick={() => setActiveTab('tips')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
+              activeTab === 'tips'
+                ? 'bg-emerald-100 text-emerald-800 shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <span>🌿</span> Panduan Kompos
+          </button>
         </div>
       </div>
+
+      {/* MAIN CONTAINER */}
+      <main className="max-w-5xl mx-auto px-4 py-6 sm:py-10 flex-1 w-full space-y-8">
+        
+        {/* ========================================== */}
+        {/* TAB 1: HOME PAGE (SCANNER)                 */}
+        {/* ========================================== */}
+        {activeTab === 'home' && (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            
+            {/* HERO TITLE HEADER */}
+            <div className="text-center max-w-2xl mx-auto space-y-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-xs">
+                ✨ AI Vision Composting Assistant
+              </span>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                Ubah Sampah Organik Jadi <span className="text-emerald-600 underline decoration-emerald-300 decoration-wavy decoration-2">Nutrisi Tanah</span>
+              </h1>
+              <p className="text-slate-600 text-sm sm:text-base font-normal leading-relaxed">
+                Ambil foto sisa makanan atau bahan organikmu. AI kami akan mengidentifikasi kelayakannya dan memandu langkah pengomposan secara otomatis!
+              </p>
+            </div>
+
+            {/* SCANNER CARD */}
+            <div className="max-w-xl mx-auto bg-white rounded-3xl p-4 sm:p-6 shadow-xl shadow-slate-200/60 border border-emerald-100/80 transition-all">
+              
+              {/* MODE TOGGLE SWITCH */}
+              <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1 mb-5">
+                <button
+                  onClick={() => { setInputMode('camera'); setImagePreview(null); }}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${
+                    inputMode === 'camera'
+                      ? 'bg-white text-emerald-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <span>📷</span> Kamera Live
+                </button>
+                <button
+                  onClick={() => { setInputMode('upload'); stopCamera(); }}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${
+                    inputMode === 'upload'
+                      ? 'bg-white text-emerald-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <span>📁</span> Upload Foto
+                </button>
+              </div>
+
+              {/* VIEWPORT: CAMERA OR UPLOAD OR PREVIEW */}
+              {!imagePreview ? (
+                <div>
+                  {/* LIVE CAMERA MODE */}
+                  {inputMode === 'camera' && (
+                    <div className="relative aspect-[4/3] w-full bg-slate-950 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center group border border-slate-800">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+                      
+                      {/* CAMERA OVERLAY & SCANNER TARGET */}
+                      <div className="absolute inset-0 border-2 border-emerald-400/40 rounded-2xl pointer-events-none flex items-center justify-center p-8">
+                        <div className="w-full h-full border-2 border-dashed border-emerald-400/70 rounded-xl relative animate-pulse">
+                          <div className="absolute top-2 left-2 text-[10px] uppercase font-bold tracking-wider text-emerald-300 bg-slate-900/80 px-2 py-0.5 rounded backdrop-blur-xs">
+                            Arahkan ke Sampah
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* CAPTURE BUTTON */}
+                      <div className="absolute bottom-4 inset-x-0 flex justify-center items-center">
+                        <button
+                          onClick={handleCapture}
+                          className="group/btn relative flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-2xl hover:scale-105 active:scale-95 transition-transform"
+                          aria-label="Capture Photo"
+                        >
+                          <span className="w-12 h-12 rounded-full border-2 border-emerald-600 bg-emerald-500 group-hover/btn:bg-emerald-600 transition-colors"></span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* UPLOAD FILE MODE */}
+                  {inputMode === 'upload' && (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="aspect-[4/3] w-full bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all cursor-pointer flex flex-col items-center justify-center p-6 text-center group"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
+                        📥
+                      </div>
+                      <p className="font-bold text-slate-800 text-base mb-1">
+                        Tarik & Lepas Gambar di Sini
+                      </p>
+                      <p className="text-slate-500 text-xs sm:text-sm max-w-xs mb-3">
+                        atau klik untuk memilih berkas gambar dari galeri perangkatmu
+                      </p>
+                      <span className="inline-block px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-semibold shadow-2xs">
+                        Format: JPG, JPEG, PNG
+                      </span>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/jpg,image/jpeg,image/png"
+                        onChange={handleFileChange}
+                        hidden
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* IMAGE PREVIEW & ACTIONS */
+                <div className="space-y-4">
+                  <div className="relative aspect-[4/3] w-full bg-slate-900 rounded-2xl overflow-hidden shadow-md border border-slate-200">
+                    <img
+                      src={imagePreview}
+                      alt="Hasil Foto"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                      Siap Menganalisis
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleRetake}
+                      className="flex-1 py-3 px-4 rounded-2xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-98 transition-all text-sm flex items-center justify-center gap-1.5"
+                    >
+                      ↺ Foto Ulang
+                    </button>
+                    <button
+                      onClick={handleDetect}
+                      disabled={isDetecting}
+                      className={`flex-[2] py-3 px-4 rounded-2xl font-black text-white text-sm shadow-lg transition-all flex items-center justify-center gap-2 active:scale-98 ${
+                        isDetecting
+                          ? 'bg-amber-500 shadow-amber-500/20 cursor-wait'
+                          : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/30'
+                      }`}
+                    >
+                      {isDetecting ? (
+                        <>
+                          <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>AI Menganalisis...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>🔍 Deteksi Sekarang</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* BENEFIT BADGES */}
+            <div className="grid sm:grid-cols-3 gap-4 pt-4">
+              <div className="bg-white p-5 rounded-2xl border border-emerald-100/60 shadow-xs flex items-start gap-3.5 hover:shadow-md transition-shadow">
+                <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-xl flex-shrink-0">
+                  🌱
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Ramah Lingkungan</h3>
+                  <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">
+                    Kurangi jejak karbon dengan mengolah sampah dapur secara mandiri.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-emerald-100/60 shadow-xs flex items-start gap-3.5 hover:shadow-md transition-shadow">
+                <div className="p-2.5 bg-amber-100 text-amber-800 rounded-xl text-xl flex-shrink-0">
+                  ⚡
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Instan dengan AI</h3>
+                  <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">
+                    Identifikasi otomatis bahan kompos cokelat vs hijau dalam hitungan detik.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-emerald-100/60 shadow-xs flex items-start gap-3.5 hover:shadow-md transition-shadow">
+                <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl text-xl flex-shrink-0">
+                  📖
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Panduan Interaktif</h3>
+                  <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">
+                    Dapatkan langkah pembuatan kompos dan tanya jawab langsung ke CompostBot.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================== */}
+        {/* TAB 2: HISTORY                             */}
+        {/* ========================================== */}
+        {activeTab === 'history' && (
+          <div className="space-y-6 max-w-3xl mx-auto animate-in fade-in duration-300">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm text-center space-y-4">
+              <div className="w-16 h-16 mx-auto bg-slate-100 rounded-2xl flex items-center justify-center text-3xl">
+                📋
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">Riwayat Sesi Pengomposan</h2>
+                <p className="text-slate-500 text-sm max-w-md mx-auto mt-1">
+                  Lihat daftar analisis dan progres pembuatan kompos yang sudah pernah kamu buat.
+                </p>
+              </div>
+              <div className="pt-2">
+                <button
+                  onClick={() => router.push('/composting')}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition-all"
+                >
+                  Buka Halaman Riwayat Sesi →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================== */}
+        {/* TAB 3: TIPS                                */}
+        {/* ========================================== */}
+        {activeTab === 'tips' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="text-center max-w-xl mx-auto space-y-2">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                Tips Pembuatan Kompos 🌿
+              </h2>
+              <p className="text-slate-600 text-sm">
+                Pelajari racikan bahan hijau (nitrogen) dan bahan cokelat (karbon) agar kompos sukses tanpa bau!
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2 hover:shadow-md transition-shadow">
+                <div className="text-3xl">🍌</div>
+                <h3 className="font-bold text-slate-900 text-base">Sisa Buah & Sayur</h3>
+                <p className="text-slate-600 text-xs leading-relaxed">
+                  Bahan Hijau (Nitrogen). Potong kecil-kecil agar lebih cepat terurai oleh mikroba tanah.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2 hover:shadow-md transition-shadow">
+                <div className="text-3xl">📰</div>
+                <h3 className="font-bold text-slate-900 text-base">Kardus & Kertas Bekas</h3>
+                <p className="text-slate-600 text-xs leading-relaxed">
+                  Bahan Cokelat (Karbon). Robek kecil kardus non-glossy untuk menyerap kelembapan berlebih.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2 hover:shadow-md transition-shadow">
+                <div className="text-3xl">☕</div>
+                <h3 className="font-bold text-slate-900 text-base">Ampas Kopi & Teh</h3>
+                <p className="text-slate-600 text-xs leading-relaxed">
+                  Sangat disukai cacing tanah dan menambah unsur hara penting untuk media tanam.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-rose-100 bg-rose-50/20 shadow-xs space-y-2 hover:shadow-md transition-shadow">
+                <div className="text-3xl">🚫</div>
+                <h3 className="font-bold text-rose-900 text-base">Hindari Bahan Ini</h3>
+                <p className="text-rose-700/80 text-xs leading-relaxed">
+                  Daging, minyak, susu, dan kotoran hewan peliharaan karena dapat mengundang hama dan bau busuk.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2 hover:shadow-md transition-shadow">
+                <div className="text-3xl">💧</div>
+                <h3 className="font-bold text-slate-900 text-base">Menjaga Kelembapan</h3>
+                <p className="text-slate-600 text-xs leading-relaxed">
+                  Pastikan kompos lembap seperti spons yang diperas. Jika terlalu kering, percikkan sedikit air.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2 hover:shadow-md transition-shadow">
+                <div className="text-3xl">🔄</div>
+                <h3 className="font-bold text-slate-900 text-base">Aduk Secara Berkala</h3>
+                <p className="text-slate-600 text-xs leading-relaxed">
+                  Aduk tumpukan kompos 1–2 minggu sekali untuk memberikan pasokan oksigen yang cukup.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* FOOTER */}
+      <footer className="border-t border-slate-200/80 bg-white py-6 text-center text-xs text-slate-500">
+        <p>© 2026 CompostMind — Smart AI Composting Assistant 🍃</p>
+      </footer>
 
       {/* ========================================== */}
       {/* POP-UP MODAL HASIL DETEKSI (YOLO)          */}
       {/* ========================================== */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl transform scale-100 animate-in zoom-in-95 duration-200">
-            <div className="text-center mb-4">
-              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
-                <span className="text-2xl">✨</span>
-              </div>
-              <h2 className="text-xl font-bold text-gray-800">Objek Terdeteksi!</h2>
-              <p className="text-sm text-gray-500 mt-1">Edit jumlah jika ada yang kurang tepat sebelum disimpan.</p>
-            </div>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-emerald-100 transform transition-all animate-in zoom-in-95 duration-200">
             
-            <div className="space-y-2 mb-6 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+            {/* MODAL HEADER */}
+            <div className="text-center mb-5 space-y-1.5">
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold mb-2">
+                ✨
+              </div>
+              <h2 className="text-xl font-black text-slate-900">Objek Terdeteksi!</h2>
+              <p className="text-xs text-slate-500">
+                AI berhasil menemukan bahan berikut. Kamu dapat menyesuaikan jumlahnya jika kurang sesuai.
+              </p>
+            </div>
+
+            {/* DETECTED ITEMS LIST */}
+            <div className="space-y-2.5 mb-6 max-h-56 overflow-y-auto pr-1">
               {detectedItems.map((item, index) => (
-                <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="font-medium capitalize text-gray-700 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                <div
+                  key={index}
+                  className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200/80"
+                >
+                  <span className="font-bold text-sm capitalize text-slate-800 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                     {item.name.replace('_', ' ')}
                   </span>
+                  
+                  {/* QUANTITY CONTROLS */}
                   <div className="flex items-center space-x-2">
-                    <button onClick={() => updateQuantity(index, -1)} className="w-7 h-7 bg-white border border-gray-200 text-gray-600 rounded-full font-bold hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition">-</button>
-                    <span className="font-bold w-4 text-center text-gray-800">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(index, 1)} className="w-7 h-7 bg-white border border-gray-200 text-gray-600 rounded-full font-bold hover:bg-green-50 hover:text-green-600 hover:border-green-200 transition">+</button>
+                    <button
+                      onClick={() => updateQuantity(index, -1)}
+                      className="w-8 h-8 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors active:scale-95 text-sm flex items-center justify-center"
+                    >
+                      -
+                    </button>
+                    <span className="font-extrabold w-5 text-center text-slate-800 text-sm">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => updateQuantity(index, 1)}
+                      className="w-8 h-8 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-colors active:scale-95 text-sm flex items-center justify-center"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="flex space-x-3">
-              <button onClick={handleRetake} className="flex-1 py-3 border border-gray-300 rounded-xl font-medium text-gray-600 hover:bg-gray-50 transition">Foto Ulang</button>
-              <button onClick={handleConfirm} className="flex-[2] py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 shadow-md transition">Simpan & Lanjut →</button>
+            {/* MODAL ACTIONS */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleRetake}
+                className="flex-1 py-3 px-4 border border-slate-200 rounded-2xl font-bold text-slate-600 text-sm hover:bg-slate-50 transition-colors"
+              >
+                Foto Ulang
+              </button>
+              <button
+                onClick={handleConfirm}
+                className="flex-[1.5] py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm shadow-md shadow-emerald-600/30 transition-all active:scale-98"
+              >
+                Simpan & Lanjut →
+              </button>
             </div>
+
           </div>
         </div>
       )}
-    </main>
+
+    </div>
   );
 }
