@@ -1,0 +1,149 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+
+interface StepData { id: string; step_order: number; title: string; instruction: string; is_completed: boolean; }
+interface ChatMessage { role: 'user' | 'bot'; message: string; }
+
+export default function StepDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const sessionId = params.id as string;
+  const stepId = params.stepId as string;
+
+  const [step, setStep] = useState<StepData | null>(null);
+  const [allSteps, setAllSteps] = useState<StepData[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatting, setIsChatting] = useState(false);
+
+  useEffect(() => {
+    async function fetchStepData() {
+      // Ambil detail step saat ini
+      const { data: currentStep } = await supabase.from('steps').select('*').eq('id', stepId).single();
+      if (currentStep) setStep(currentStep);
+
+      // Ambil semua steps untuk progress bar
+      const { data: steps } = await supabase.from('steps').select('*').eq('session_id', sessionId).order('step_order');
+      if (steps) setAllSteps(steps);
+
+      // Ambil chat history khusus untuk step ini
+      const { data: chats } = await supabase.from('chat_history').select('role, message').eq('step_id', stepId).order('created_at');
+      if (chats) setChatMessages(chats);
+    }
+    if (stepId) fetchStepData();
+  }, [stepId, sessionId]);
+
+  // Handle Chat spesifik step
+  const handleSendChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    const userMsg = chatInput;
+    setChatMessages(prev => [...prev, { role: 'user', message: userMsg }]);
+    setChatInput('');
+    setIsChatting(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, step_id: stepId, message: userMsg }) // KIRIM STEP_ID!
+      });
+      const data = await res.json();
+      if (res.ok) setChatMessages(prev => [...prev, { role: 'bot', message: data.reply }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: 'bot', message: 'Error koneksi bot.' }]);
+    } finally { setIsChatting(false); }
+  };
+
+  // Handle Selesai Step
+  const handleCompleteStep = async () => {
+    // Update DB
+    await supabase.from('steps').update({ is_completed: true }).eq('id', stepId);
+    
+    // Cek apakah ini step terakhir
+    const currentOrder = step?.step_order || 0;
+    const totalSteps = allSteps.length;
+
+    if (currentOrder >= totalSteps) {
+      // Jika terakhir, update status session jadi completed
+      await supabase.from('sessions').update({ status: 'completed' }).eq('id', sessionId);
+      alert('🎉 Selamat! Sesi pengomposan selesai. Terima kasih telah menjaga bumi!');
+      router.push('/'); // Kembali ke home
+    } else {
+      // Pindah ke step berikutnya
+      const nextStep = allSteps.find(s => s.step_order === currentOrder + 1);
+      if (nextStep) router.push(`/composting/${sessionId}/step/${nextStep.id}`);
+    }
+  };
+
+  if (!step) return <div className="p-10 text-center">Memuat langkah...</div>;
+
+  return (
+    <main className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center">
+      <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+        
+        {/* Progress Bar Header */}
+        <div className="bg-gray-800 p-4 text-white">
+          <div className="flex justify-between text-sm mb-2 font-medium">
+            <span>Langkah {step.step_order} dari {allSteps.length}</span>
+            <span>{Math.round((step.step_order / allSteps.length) * 100)}% Selesai</span>
+          </div>
+          <div className="w-full bg-gray-600 rounded-full h-2.5">
+            <div className="bg-green-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${(step.step_order / allSteps.length) * 100}%` }}></div>
+          </div>
+        </div>
+
+        <div className="p-6 md:p-8 grid md:grid-cols-5 gap-8">
+          
+          {/* KOLOM INSTRUKSI (3/5 lebar) */}
+          <div className="md:col-span-3">
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">{step.title}</h1>
+            <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-xl mb-8">
+              <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-line">{step.instruction}</p>
+            </div>
+
+            <button 
+              onClick={handleCompleteStep}
+              className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-xl shadow-md transition flex items-center justify-center"
+            >
+              {step.step_order === allSteps.length ? '🏁 Selesaikan Sesi Kompos' : '✅ Selesai, Lanjut Langkah Berikutnya'}
+            </button>
+          </div>
+
+          {/* KOLOM CHAT BOT SPESIFIK STEP (2/5 lebar) */}
+          <div className="md:col-span-2 flex flex-col h-[500px] border border-gray-200 rounded-xl bg-gray-50 shadow-inner">
+            <div className="bg-white p-3 border-b font-bold text-gray-700 rounded-t-xl text-sm">🤖 Bantuan Langkah Ini</div>
+            
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              {chatMessages.length === 0 && (
+                <p className="text-center text-gray-400 text-xs mt-10">Bingung dengan langkah "{step.title}"? Tanyakan di sini!</p>
+              )}
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] p-2.5 rounded-2xl text-xs ${
+                    msg.role === 'user' ? 'bg-green-600 text-white rounded-br-none' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
+                  }`}>
+                    {msg.message}
+                  </div>
+                </div>
+              ))}
+              {isChatting && <div className="text-gray-400 text-xs italic pl-2">Bot berpikir...</div>}
+            </div>
+
+            <form onSubmit={handleSendChat} className="p-2 bg-white border-t rounded-b-xl flex">
+              <input 
+                type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Tanya soal langkah ini..." className="flex-1 border border-gray-300 rounded-l-lg px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-green-500"
+              />
+              <button type="submit" className="bg-green-600 text-white px-3 rounded-r-lg font-medium text-xs hover:bg-green-700">Kirim</button>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  );
+}

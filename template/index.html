@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CompostMind – Smart Composting Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <img src="assets/logo.png" alt="CompostMind Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"/>
+        <div class="logo-fallback" style="display:none">🌱</div>
+      </div>
+      <div class="logo-text">
+        <span class="brand-name">CompostMind</span>
+        <span class="brand-sub">Smart Composting Assistant</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="home">
+        <span class="nav-icon">🏠</span> Home
+      </a>
+      <a href="#" class="nav-item" data-page="history">
+        <span class="nav-icon">🕐</span> History
+      </a>
+      <a href="#" class="nav-item" data-page="tips">
+        <span class="nav-icon">🌿</span> Tips
+      </a>
+    </nav>
+
+    <div class="sidebar-why">
+      <p class="why-title">Why Compost?</p>
+      <ul class="why-list">
+        <li><span>🌿</span> Reduce landfill waste</li>
+        <li><span>🌱</span> Improve soil health</li>
+        <li><span>🌍</span> Help the environment</li>
+      </ul>
+    </div>
+
+    <div class="sidebar-illustration">
+      <img src="assets/compost-bin.png" alt="Compost Bin" onerror="this.style.display='none'"/>
+    </div>
+
+    <div class="sidebar-footer">
+      Made with ❤️ for<br/>a greener planet 🌍
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">☰</button>
+      <div class="topbar-right">
+        <a href="#" class="about-link">ⓘ About</a>
+      </div>
+    </div>
+
+    <!-- PAGE: HOME -->
+    <div class="page active" id="page-home">
+      <div class="page-header">
+        <h1 class="page-title">Welcome to CompostMind 🍃</h1>
+        <p class="page-subtitle">
+          Upload a photo of your waste and let AI identify whether it is
+          <strong class="compostable-label">Compostable</strong> or
+          <strong class="non-compostable-label">Non-Compostable.</strong>
+        </p>
+      </div>
+
+      <!-- UPLOAD SECTION -->
+      <section class="card upload-section">
+        <div class="card-header">
+          <!-- <span class="card-icon">⬆️</span> -->
+          <h2>Upload Waste Image</h2>
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="btn-upload" onclick="switchMode('upload')">
+             Upload Image
+          </button>
+          <button class="mode-btn" id="btn-camera" onclick="switchMode('camera')">
+             Scan
+          </button>
+        </div>
+
+        <!-- Upload Mode -->
+        <div class="upload-area" id="upload-mode">
+          <div class="dropzone" id="dropzone">
+            <div class="dropzone-inner">
+              <!-- <div class="upload-icon">☁️⬆</div> -->
+              <p class="drop-text">Drag and drop an image here</p>
+              <p class="drop-sub">or click to browse</p>
+            </div>
+            <input type="file" id="fileInput" accept="image/jpg,image/jpeg,image/png" hidden/>
+          </div>
+          <p class="format-note">Supported formats: JPG, JPEG, PNG</p>
+        </div>
+
+        <!-- Camera Mode -->
+        <div class="camera-area" id="camera-mode" style="display:none">
+          <div class="camera-container" id="cameraContainer">
+            <video id="cameraVideo" autoplay playsinline></video>
+            <div class="camera-overlay">
+              <div class="camera-frame"></div>
+            </div>
+            <div class="camera-controls">
+              <button class="capture-btn" id="captureBtn" onclick="capturePhoto()">
+                <span class="capture-ring"></span>
+                <span class="capture-dot"></span>
+              </button>
+            </div>
+          </div>
+          <canvas id="captureCanvas" style="display:none"></canvas>
+          <!-- <div class="camera-hint">Point camera at waste item and press button to capture</div> -->
+
+          <!-- Camera not started yet placeholder -->
+          <div class="camera-placeholder" id="cameraPlaceholder">
+            <!-- <div class="cam-icon">📷</div> -->
+            <p>Point camera at waste item and press button to capture</p>
+            <button class="start-camera-btn" onclick="startLiveScan()">Start Camera</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- RESULT SECTION (hidden until analysis) -->
+      <section class="card result-section" id="resultSection" style="display:none">
+        <div class="card-header">
+          <span class="card-icon">📊</span>
+          <h2>Prediction Result</h2>
+        </div>
+
+        <div class="result-grid">
+          <div class="result-image-col">
+            <p class="result-label">Uploaded Image</p>
+            <div class="result-img-wrapper">
+              <img id="resultImage" src="" alt="Analyzed waste"/>
+            </div>
+          </div>
+          <div class="result-prediction-col">
+            <p class="result-label">Prediction</p>
+            <div class="prediction-badge" id="predictionBadge">
+              <div class="badge-icon" id="badgeIcon">✓</div>
+              <div class="prediction-text" id="predictionText">Compostable</div>
+            </div>
+            <div class="confidence-block">
+              <p class="conf-label">Confidence Score</p>
+              <p class="conf-score" id="confScore">96.23%</p>
+              <div class="conf-bar-bg">
+                <div class="conf-bar-fill" id="confBarFill"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading state -->
+        <div class="analyzing-overlay" id="analyzingOverlay" style="display:none">
+          <div class="analyzing-spinner"></div>
+          <p class="analyzing-text">Analyzing your waste...</p>
+        </div>
+      </section>
+
+      <!-- RECOMMENDATION SECTION -->
+      <section class="card recommendation-section" id="recommendationSection" style="display:none">
+        <div class="rec-content">
+          <div class="rec-left">
+            <div class="card-header">
+              <span class="card-icon">💡</span>
+              <h2>Recommendation</h2>
+            </div>
+            <p class="rec-main-text" id="recMainText">This waste is compostable! You can add it to your compost bin.</p>
+            <ul class="rec-list" id="recList">
+              <li>✅ Cut into smaller pieces for faster decomposition.</li>
+              <li>✅ Mix with dry leaves or brown materials.</li>
+              <li>✅ Keep the compost moist (not too wet).</li>
+              <li>✅ Turn the compost regularly for better results.</li>
+            </ul>
+          </div>
+          <div class="rec-right">
+            <img src="assets/compost-box.png" alt="Compost box" class="rec-image" id="recImage" onerror="this.style.display='none'"/>
+          </div>
+        </div>
+      </section>
+
+      <!-- DID YOU KNOW -->
+      <section class="card didyouknow-section" id="didYouKnowSection" style="display:none">
+        <div class="dyk-content">
+          <div class="dyk-left">
+            <div class="dyk-header">
+              <span class="dyk-icon">ℹ️</span>
+              <h3>Did you know?</h3>
+            </div>
+            <p id="dykText">Banana peels decompose in 2–5 weeks and are rich in potassium, which helps plants grow strong!</p>
+          </div>
+          <div class="dyk-right">
+            <img src="assets/banana.png" alt="Banana" onerror="this.style.display='none'"/>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOOTER BADGES -->
+      <div class="footer-badges">
+        <div class="badge-item">
+          <span class="badge-emoji">🌿</span>
+          <strong>Eco Friendly</strong>
+          <p>Small actions for a better planet.</p>
+        </div>
+        <div class="badge-item">
+          <span class="badge-emoji">🌱</span>
+          <strong>Reduce Waste</strong>
+          <p>Composting helps reduce household waste.</p>
+        </div>
+        <div class="badge-item">
+          <span class="badge-emoji">♻️</span>
+          <strong>Better Soil</strong>
+          <p>Nutrient-rich compost improves soil health.</p>
+        </div>
+      </div>
+
+      <div class="main-footer">
+        © 2026 CompostMind | Smart Composting Assistant
+      </div>
+    </div>
+
+    <!-- PAGE: HISTORY -->
+    <div class="page" id="page-history">
+      <div class="history-header">
+
+    <div>
+        <h1>Analysis History 🕑</h1>
+        <p>Your past waste analysis results.</p>
+    </div>
+
+    <button id="clearHistoryBtn" class="clear-history-btn">
+        🗑 Clear History
+    </button>
+
+</div>
+      <div class="card">
+        <div id="historyList" class="history-list">
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <p>No history yet. Analyze some waste first!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: TIPS -->
+    <div class="page" id="page-tips">
+      <div class="page-header">
+        <h1 class="page-title">Composting Tips 🌿</h1>
+        <p class="page-subtitle">Learn how to compost better.</p>
+      </div>
+      <div class="tips-grid">
+        <div class="card tip-card">
+          <div class="tip-emoji">🍌</div>
+          <h3>Fruit & Veggie Scraps</h3>
+          <p>Always compostable. Cut them small for faster breakdown. Avoid oily or salted scraps.</p>
+        </div>
+        <div class="card tip-card">
+          <div class="tip-emoji">📰</div>
+          <h3>Paper & Cardboard</h3>
+          <p>Shredded paper and torn cardboard are excellent brown materials. Avoid glossy paper.</p>
+        </div>
+        <div class="card tip-card">
+          <div class="tip-emoji">☕</div>
+          <h3>Coffee Grounds</h3>
+          <p>Coffee grounds and filters are great green material. They enrich compost with nitrogen.</p>
+        </div>
+        <div class="card tip-card">
+          <div class="tip-emoji">🚫</div>
+          <h3>Avoid These</h3>
+          <p>Meat, dairy, oily food, and pet waste are non-compostable and attract pests.</p>
+        </div>
+        <div class="card tip-card">
+          <div class="tip-emoji">💧</div>
+          <h3>Moisture Balance</h3>
+          <p>Keep compost as moist as a wrung-out sponge. Too dry = slow; too wet = smelly.</p>
+        </div>
+        <div class="card tip-card">
+          <div class="tip-emoji">🔄</div>
+          <h3>Turn Regularly</h3>
+          <p>Turn your pile every 1–2 weeks to aerate. Oxygen speeds up decomposition significantly.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
