@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { ingredients } = body;
 
+    // Validasi input
     if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
       return NextResponse.json(
         { error: 'List bahan (ingredients) wajib diisi dan harus berupa array.' }, 
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Buat Session Baru
+    // 1. Buat Session Baru di Supabase
     const { data: newSession, error: sessionError } = await supabase
       .from('sessions')
       .insert({ 
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
       throw new Error(`Gagal menyimpan bahan: ${ingredientsError.message}`);
     }
 
+    // 4. Return response sukses dengan session_id
     return NextResponse.json({
       status: 'success',
       session_id: sessionId,
