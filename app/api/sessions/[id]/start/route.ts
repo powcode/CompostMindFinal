@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { generateCompostSteps } from '@/lib/gemini';
 
-// PERUBAHAN DI SINI: Tambahkan Promise<{ id: string }> dan await params di dalam fungsi
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> } 
+  { params }: { params: Promise<{ id: string }> } // ← Tambahkan Promise<>
 ) {
-  // Unwrap params menggunakan await (Wajib di Next.js 15)
-  const { id: sessionId } = await params; 
+  const { id: sessionId } = await params; // ← Await dan rename biar jelas
 
   try {
+    // ... sisa kode tetap sama ...
     // --- DEBUG LOG ANDA (Biarkan sebentar sampai benar-benar sukses) ---
     console.log("🔍 MENCARI SESSION ID:", sessionId);
     

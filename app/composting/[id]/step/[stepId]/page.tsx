@@ -9,14 +9,17 @@ interface StepData {
   step_order: number; 
   title: string; 
   instruction: string; 
-  expected_output: string;  // ✅ TAMBAHKAN
+  expected_output: string;  
   is_completed: boolean; 
 }
+
 interface ChatMessage { role: 'user' | 'bot'; message: string; }
 
 export default function StepDetailPage() {
   const params = useParams();
   const router = useRouter();
+  
+  // Next.js 16: useParams() tetap sinkron di Client Component
   const sessionId = params.id as string;
   const stepId = params.stepId as string;
 
@@ -28,25 +31,44 @@ export default function StepDetailPage() {
 
   useEffect(() => {
     async function fetchStepData() {
+      if (!stepId || !sessionId) return;
+
       // Ambil detail step saat ini
-      const { data: currentStep } = await supabase.from('steps').select('*').eq('id', stepId).single();
+      const { data: currentStep } = await supabase
+        .from('steps')
+        .select('*')
+        .eq('id', stepId)
+        .single();
+      
       if (currentStep) setStep(currentStep);
 
       // Ambil semua steps untuk progress bar
-      const { data: steps } = await supabase.from('steps').select('*').eq('session_id', sessionId).order('step_order');
+      const { data: steps } = await supabase
+        .from('steps')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('step_order');
+      
       if (steps) setAllSteps(steps);
 
       // Ambil chat history khusus untuk step ini
-      const { data: chats } = await supabase.from('chat_history').select('role, message').eq('step_id', stepId).order('created_at');
+      const { data: chats } = await supabase
+        .from('chat_history')
+        .select('role, message')
+        .eq('step_id', stepId)
+        .order('created_at');
+      
       if (chats) setChatMessages(chats);
     }
-    if (stepId) fetchStepData();
+    
+    fetchStepData();
   }, [stepId, sessionId]);
 
   // Handle Chat spesifik step
   const handleSendChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
+    
     const userMsg = chatInput;
     setChatMessages(prev => [...prev, { role: 'user', message: userMsg }]);
     setChatInput('');
@@ -56,29 +78,38 @@ export default function StepDetailPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, step_id: stepId, message: userMsg }) // KIRIM STEP_ID!
+        body: JSON.stringify({ session_id: sessionId, step_id: stepId, message: userMsg })
       });
       const data = await res.json();
-      if (res.ok) setChatMessages(prev => [...prev, { role: 'bot', message: data.reply }]);
+      
+      if (res.ok) {
+        setChatMessages(prev => [...prev, { role: 'bot', message: data.reply }]);
+      } else {
+        throw new Error(data.error);
+      }
     } catch (err) {
       setChatMessages(prev => [...prev, { role: 'bot', message: 'Error koneksi bot.' }]);
-    } finally { setIsChatting(false); }
+    } finally { 
+      setIsChatting(false); 
+    }
   };
 
   // Handle Selesai Step
   const handleCompleteStep = async () => {
+    if (!step) return;
+
     // Update DB
     await supabase.from('steps').update({ is_completed: true }).eq('id', stepId);
     
     // Cek apakah ini step terakhir
-    const currentOrder = step?.step_order || 0;
+    const currentOrder = step.step_order;
     const totalSteps = allSteps.length;
 
     if (currentOrder >= totalSteps) {
       // Jika terakhir, update status session jadi completed
       await supabase.from('sessions').update({ status: 'completed' }).eq('id', sessionId);
       alert('🎉 Selamat! Sesi pengomposan selesai. Terima kasih telah menjaga bumi!');
-      router.push('/'); // Kembali ke home
+      router.push('/composting'); // Redirect ke dashboard riwayat, bukan home
     } else {
       // Pindah ke step berikutnya
       const nextStep = allSteps.find(s => s.step_order === currentOrder + 1);
@@ -86,7 +117,7 @@ export default function StepDetailPage() {
     }
   };
 
-  if (!step) return <div className="p-10 text-center">Memuat langkah...</div>;
+  if (!step) return <div className="min-h-screen flex items-center justify-center text-gray-500">Memuat langkah...</div>;
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center">
@@ -99,64 +130,77 @@ export default function StepDetailPage() {
             <span>{Math.round((step.step_order / allSteps.length) * 100)}% Selesai</span>
           </div>
           <div className="w-full bg-gray-600 rounded-full h-2.5">
-            <div className="bg-green-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${(step.step_order / allSteps.length) * 100}%` }}></div>
+            <div 
+              className="bg-green-500 h-2.5 rounded-full transition-all duration-500" 
+              style={{ width: `${(step.step_order / allSteps.length) * 100}%` }}
+            ></div>
           </div>
         </div>
 
         <div className="p-6 md:p-8 grid md:grid-cols-5 gap-8">
           
           {/* KOLOM INSTRUKSI (3/5 lebar) */}
-          {/* ... kode sebelumnya ... */}
-
-        <div className="md:col-span-3">
-          <h1 className="text-3xl font-bold text-gray-800 mb-4">{step.title}</h1>
-          
-          {/* Kotak Instruksi (sudah ada) */}
-          <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-xl mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">📋</span>
-              <h3 className="font-bold text-green-800 text-sm uppercase tracking-wide">Apa yang harus dilakukan</h3>
+          <div className="md:col-span-3">
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">{step.title}</h1>
+            
+            {/* Kotak Instruksi */}
+            <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-xl mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xl">📋</span>
+                <h3 className="font-bold text-green-800 text-sm uppercase tracking-wide">Apa yang harus dilakukan</h3>
+              </div>
+              <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-line">{step.instruction}</p>
             </div>
-            <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-line">{step.instruction}</p>
+
+            {/* ✅ KOTAK: Expected Output (dengan fallback anti-kosong) */}
+            {step.expected_output && step.expected_output.trim() !== '' ? (
+              <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-xl mb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">✅</span>
+                  <h3 className="font-bold text-amber-800 text-sm uppercase tracking-wide">Hasil yang Diharapkan</h3>
+                </div>
+                <p className="text-gray-700 text-base leading-relaxed italic">
+                  "{step.expected_output}"
+                </p>
+                <p className="text-xs text-amber-600 mt-3 flex items-center gap-1">
+                  <span>💡</span>
+                  <span>Bandingkan hasil Anda dengan deskripsi di atas. Jika sesuai, lanjut ke langkah berikutnya!</span>
+                </p>
+              </div>
+            ) : (
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-r-xl mb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🤔</span>
+                  <h3 className="font-bold text-blue-800 text-sm uppercase tracking-wide">Tips Verifikasi</h3>
+                </div>
+                <p className="text-gray-700 text-base leading-relaxed">
+                  Pastikan hasil langkah ini terlihat wajar dan sesuai instruksi. Jika ragu, tanyakan ke CompostBot di panel kanan!
+                </p>
+              </div>
+            )}
+
+            <button 
+              onClick={handleCompleteStep}
+              className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-xl shadow-md transition flex items-center justify-center"
+            >
+              {step.step_order === allSteps.length ? '🏁 Selesaikan Sesi Kompos' : '✅ Selesai, Lanjut Langkah Berikutnya'}
+            </button>
           </div>
-
-          {/* ✅ KOTAK BARU: Expected Output */}
-          <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-xl mb-8">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">✅</span>
-              <h3 className="font-bold text-amber-800 text-sm uppercase tracking-wide">Hasil yang Diharapkan</h3>
-            </div>
-            <p className="text-gray-700 text-base leading-relaxed italic">
-              "{step.expected_output}"
-            </p>
-            <p className="text-xs text-amber-600 mt-3 flex items-center gap-1">
-              <span>💡</span>
-              <span>Bandingkan hasil Anda dengan deskripsi di atas. Jika sesuai, lanjut ke langkah berikutnya!</span>
-            </p>
-          </div>
-
-          <button 
-            onClick={handleCompleteStep}
-            className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-xl shadow-md transition flex items-center justify-center"
-          >
-            {step.step_order === allSteps.length ? '🏁 Selesaikan Sesi Kompos' : '✅ Selesai, Lanjut Langkah Berikutnya'}
-          </button>
-        </div>
-
-{/* ... kode chatbot di kanan tetap sama ... */}
 
           {/* KOLOM CHAT BOT SPESIFIK STEP (2/5 lebar) */}
           <div className="md:col-span-2 flex flex-col h-[500px] border border-gray-200 rounded-xl bg-gray-50 shadow-inner">
             <div className="bg-white p-3 border-b font-bold text-gray-700 rounded-t-xl text-sm">🤖 Bantuan Langkah Ini</div>
             
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
               {chatMessages.length === 0 && (
                 <p className="text-center text-gray-400 text-xs mt-10">Bingung dengan langkah "{step.title}"? Tanyakan di sini!</p>
               )}
               {chatMessages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] p-2.5 rounded-2xl text-xs ${
-                    msg.role === 'user' ? 'bg-green-600 text-white rounded-br-none' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
+                    msg.role === 'user' 
+                      ? 'bg-green-600 text-white rounded-br-none' 
+                      : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
                   }`}>
                     {msg.message}
                   </div>
@@ -167,8 +211,11 @@ export default function StepDetailPage() {
 
             <form onSubmit={handleSendChat} className="p-2 bg-white border-t rounded-b-xl flex">
               <input 
-                type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Tanya soal langkah ini..." className="flex-1 border border-gray-300 rounded-l-lg px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-green-500"
+                type="text" 
+                value={chatInput} 
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Tanya soal langkah ini..." 
+                className="flex-1 border border-gray-300 rounded-l-lg px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-green-500"
               />
               <button type="submit" className="bg-green-600 text-white px-3 rounded-r-lg font-medium text-xs hover:bg-green-700">Kirim</button>
             </form>

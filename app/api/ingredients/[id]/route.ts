@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-// HANDLE EDIT (PATCH)
+// PERBAIKAN: params sekarang harus di-await
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // ← Tambahkan Promise<>
 ) {
-  const ingredientId = params.id;
+  const { id } = await params; // ← Wajib di-await sebelum dipakai
+  
   try {
     const body = await request.json();
     const { quantity } = body;
@@ -18,7 +19,7 @@ export async function PATCH(
     const { error } = await supabase
       .from('ingredients')
       .update({ quantity })
-      .eq('id', ingredientId);
+      .eq('id', id);
 
     if (error) throw error;
 
@@ -29,17 +30,17 @@ export async function PATCH(
   }
 }
 
-// HANDLE DELETE (DELETE)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // ← Tambahkan Promise<>
 ) {
-  const ingredientId = params.id;
+  const { id } = await params; // ← Wajib di-await
+  
   try {
     const { error } = await supabase
       .from('ingredients')
       .delete()
-      .eq('id', ingredientId);
+      .eq('id', id);
 
     if (error) throw error;
 
