@@ -36,13 +36,19 @@ export async function POST(
     const generatedSteps = await generateCompostSteps(ingredients);
 
     // 4. Format hasil Gemini
+    // ... kode sebelumnya ...
+
+    // 4. Format hasil Gemini agar siap masuk ke database
     const stepsToInsert = generatedSteps.map((step: any, index: number) => ({
       session_id: sessionId,
       step_order: index + 1,
       title: step.title,
       instruction: step.instruction,
+      expected_output: step.expected_output,  // ✅ TAMBAHKAN BARIS INI
       is_completed: false
     }));
+
+// ... kode selanjutnya tetap sama ...
 
     // 5. Simpan ke tabel 'steps'
     const { error: insertError } = await supabase

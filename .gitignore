@@ -30,7 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files (WAJIB - jangan pernah commit API keys!)
 .env*
 
 # vercel
@@ -39,4 +39,51 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# aider
 .aider*
+
+# ==========================================
+# COMPOSTMIND SPECIFIC
+# ==========================================
+
+# Python AI Core (jika ada di dalam project)
+compost-ai-core/
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+env/
+ENV/
+
+# YOLO Model Files (BESAR! 5MB - 200MB, jangan push)
+*.pt
+*.onnx
+*.pth
+*.weights
+
+# Temporary uploads
+temp_uploads/
+tmp/
+temp/
+
+# Windows OS
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Database backups
+*.sql.dump
+*.backup
+
+# Logs
+logs/
+*.log
+
+# Jupyter/Colab checkpoints
+.ipynb_checkpoints/

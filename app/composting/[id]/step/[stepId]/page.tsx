@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-interface StepData { id: string; step_order: number; title: string; instruction: string; is_completed: boolean; }
+interface StepData { 
+  id: string; 
+  step_order: number; 
+  title: string; 
+  instruction: string; 
+  expected_output: string;  // ✅ TAMBAHKAN
+  is_completed: boolean; 
+}
 interface ChatMessage { role: 'user' | 'bot'; message: string; }
 
 export default function StepDetailPage() {
@@ -99,19 +106,44 @@ export default function StepDetailPage() {
         <div className="p-6 md:p-8 grid md:grid-cols-5 gap-8">
           
           {/* KOLOM INSTRUKSI (3/5 lebar) */}
-          <div className="md:col-span-3">
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">{step.title}</h1>
-            <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-xl mb-8">
-              <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-line">{step.instruction}</p>
-            </div>
+          {/* ... kode sebelumnya ... */}
 
-            <button 
-              onClick={handleCompleteStep}
-              className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-xl shadow-md transition flex items-center justify-center"
-            >
-              {step.step_order === allSteps.length ? '🏁 Selesaikan Sesi Kompos' : '✅ Selesai, Lanjut Langkah Berikutnya'}
-            </button>
+        <div className="md:col-span-3">
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">{step.title}</h1>
+          
+          {/* Kotak Instruksi (sudah ada) */}
+          <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-xl mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">📋</span>
+              <h3 className="font-bold text-green-800 text-sm uppercase tracking-wide">Apa yang harus dilakukan</h3>
+            </div>
+            <p className="text-gray-700 text-lg leading-relaxed whitespace-pre-line">{step.instruction}</p>
           </div>
+
+          {/* ✅ KOTAK BARU: Expected Output */}
+          <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-xl mb-8">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">✅</span>
+              <h3 className="font-bold text-amber-800 text-sm uppercase tracking-wide">Hasil yang Diharapkan</h3>
+            </div>
+            <p className="text-gray-700 text-base leading-relaxed italic">
+              "{step.expected_output}"
+            </p>
+            <p className="text-xs text-amber-600 mt-3 flex items-center gap-1">
+              <span>💡</span>
+              <span>Bandingkan hasil Anda dengan deskripsi di atas. Jika sesuai, lanjut ke langkah berikutnya!</span>
+            </p>
+          </div>
+
+          <button 
+            onClick={handleCompleteStep}
+            className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-xl shadow-md transition flex items-center justify-center"
+          >
+            {step.step_order === allSteps.length ? '🏁 Selesaikan Sesi Kompos' : '✅ Selesai, Lanjut Langkah Berikutnya'}
+          </button>
+        </div>
+
+{/* ... kode chatbot di kanan tetap sama ... */}
 
           {/* KOLOM CHAT BOT SPESIFIK STEP (2/5 lebar) */}
           <div className="md:col-span-2 flex flex-col h-[500px] border border-gray-200 rounded-xl bg-gray-50 shadow-inner">

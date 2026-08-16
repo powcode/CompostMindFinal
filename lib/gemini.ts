@@ -1,17 +1,19 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Inisialisasi Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 // ==========================================
-// UPDATE MODEL KE GEMINI 3.6 FLASH
+// PERBAIKAN: NAMA MODEL YANG PASTI ADA DI GOOGLE
 // ==========================================
-const MODEL_NAME = "gemini-3.5-flash-lite";
+// Pilih salah satu:
+// - "gemini-1.5-flash"     ← Paling stabil, cepat, murah (REKOMENDASI)
+// - "gemini-2.0-flash"     ← Generasi baru, lebih pintar
+// - "gemini-1.5-pro"       ← Lebih pintar lagi tapi lebih lambat
+const MODEL_NAME = "gemini-3.5-flash-lite"; // ✅ GANTI KE INI
 
 const model = genAI.getGenerativeModel({ 
   model: MODEL_NAME,
   generationConfig: {
-    // Gemini 3.x sangat patuh dengan responseMimeType JSON
     responseMimeType: "application/json",
   }
 });
@@ -21,15 +23,13 @@ const model = genAI.getGenerativeModel({
  */
 function extractJsonFromString(text: string): any {
   try {
-    // 1. Coba parse langsung
     return JSON.parse(text);
   } catch (e) {
-    // 2. Fallback: Cari pola array JSON [...] menggunakan Regex
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     
     if (jsonMatch && jsonMatch[0]) {
       try {
-        console.log("⚠️ Gemini 3.6 memberi teks tambahan. Berhasil diekstrak via Regex.");
+        console.log("⚠️ Gemini memberi teks tambahan. Berhasil diekstrak via Regex.");
         return JSON.parse(jsonMatch[0]);
       } catch (regexError) {
         console.error("❌ Regex menemukan kurung siku, tapi isi dalamnya bukan JSON valid:", jsonMatch[0]);
@@ -37,7 +37,7 @@ function extractJsonFromString(text: string): any {
       }
     }
     
-    console.error("❌ Teks asli dari Gemini tidak mengandung JSON Array sama sekali:", text);
+    console.error("❌ Teks asli dari Gemini tidak mengandung JSON Array:", text);
     throw new Error("Gemini tidak mengembalikan format Array JSON.");
   }
 }
@@ -48,33 +48,66 @@ function extractJsonFromString(text: string): any {
 export async function generateCompostSteps(ingredients: { name: string, quantity: number }[]) {
   const ingredientList = ingredients.map(i => `- ${i.quantity}x ${i.name}`).join("\n");
 
-  // Prompt dioptimalkan untuk Gemini 3.x (Lebih natural tapi tetap tegas soal format)
+  // Prompt Anda yang sudah BAGUS, dipertahankan 100%
   const prompt = `
-    Kamu adalah generator JSON untuk aplikasi CompostMind.
-    
-    User memiliki bahan kompos berikut:
+    [Peran]
+    Generator JSON CompostMind - Ahli Kompos Rumah Tangga
+
+    [Tujuan]
+    Menghasilkan panduan kompos 3-5 langkah dalam format JSON murni.
+
+    [Konteks]
+    User skala rumah tangga kecil dengan bahan kompos: 
     ${ingredientList}
 
-    Tugasmu: Buatkan panduan 3 sampai 5 langkah cara mengomposkan bahan tersebut.
-    
-    ATURAN OUTPUT (SANGAT PENTING):
-    1. Output HARUS berupa raw JSON Array of Objects.
-    2. Setiap object HANYA boleh punya 2 key: "title" (string) dan "instruction" (string).
-    3. DILARANG KERAS menggunakan markdown block seperti \`\`\`json.
-    4. DILARANG menambahkan teks pembuka/penutup. Langsung mulai dengan '[' dan akhiri dengan ']'.
-  `;
+    [Langkah Kerja]
+    1. Analisis bahan dan kuantitas.
+    2. Buat 3-5 langkah logis (rasio C:N, ukuran, dekomposisi).
+    3. Setiap langkah praktis, alat minimal.
+    4. SETIAP langkah WAJIB punya "expected_output" — deskripsi sensorik (warna, tekstur, bau, kondisi visual) hasil yang BENAR setelah langkah selesai. Ini untuk verifikasi user.
+    5. Output raw JSON Array.
+
+    [Batasan]
+    - WAJIB raw JSON Array, bukan markdown.
+    - Setiap object WAJIB punya 3 key: "title", "instruction", "expected_output".
+    - "expected_output" HARUS deskriptif sensorik, BUKAN kalimat kosong atau generic.
+    - DILARANG markdown code block.
+    - DILARANG teks sebelum '[' atau setelah ']'.
+
+    [Format Output]
+    PENTING: Ikuti struktur ini PERSIS. Jangan hilangkan expected_output.
+    [
+      {
+        "title": "Cacah Bahan",
+        "instruction": "Potong 5 apel menjadi potongan 2-3 cm pakai pisau dapur.",
+        "expected_output": "Potongan apel seragam 2-3 cm, warna putih kekuningan segar, belum kecoklatan. Tidak ada potongan yang terlalu besar (>3 cm)."
+      },
+      {
+        "title": "Campur dengan Daun Kering",
+        "instruction": "Aduk potongan apel dengan daun kering rasio 1:2 di ember.",
+        "expected_output": "Campuran coklat-hijau seimbang, tekstur lembab seperti spons diperas — tidak becek, tidak berdebu. Bau earthy ringan, tidak busuk."
+      }
+    ]
+    `;
 
   try {
     console.log(`🧠 Mengirim prompt ke ${MODEL_NAME}...`);
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     
-    console.log("📝 RESPONS MENTAH GEMINI 3.6:\n", responseText); 
+    console.log("📝 RESPONS MENTAH GEMINI:\n", responseText); 
     
     const steps = extractJsonFromString(responseText);
     
     if (!Array.isArray(steps)) {
       throw new Error("Hasil ekstraksi bukan berupa Array.");
+    }
+
+    // Validasi struktur setiap step (bonus safety check)
+    for (const step of steps) {
+      if (!step.title || !step.instruction) {
+        throw new Error(`Step tidak lengkap: ${JSON.stringify(step)}`);
+      }
     }
 
     return steps;
@@ -98,15 +131,14 @@ export async function chatWithCompostBot(
     contextString += `\nUser sedang berada di langkah: "${currentStepContext.title}". Instruksi: "${currentStepContext.instruction}".`;
   }
 
-  // Gunakan model 3.6 flash juga untuk chat, tapi tanpa paksaan JSON output
   const chatModel = genAI.getGenerativeModel({ model: MODEL_NAME });
 
   const prompt = `
-    Kamu adalah CompostBot, asisten AI ramah untuk aplikasi CompostMind.
-    ${contextString}
-    
-    Jawab pertanyaan user dengan singkat, padat, jelas dalam Bahasa Indonesia (Maksimal 3 kalimat).
-    Pertanyaan user: "${userMessage}"
+Kamu adalah CompostBot, asisten AI ramah untuk aplikasi CompostMind.
+${contextString}
+
+Jawab pertanyaan user dengan singkat, padat, jelas dalam Bahasa Indonesia (Maksimal 3 kalimat).
+Pertanyaan user: "${userMessage}"
   `;
 
   try {
