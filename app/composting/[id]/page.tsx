@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 // --- TYPES ---
-interface Ingredient { id: string; name: string; quantity: number; }
+interface Ingredient { id: string; name: string; quantity: number; condition: 'whole' | 'peel' | 'rotten'; }
 interface ChatMessage { role: 'user' | 'bot'; message: string; }
 
 export default function CompostSessionPage() {
@@ -45,8 +45,13 @@ export default function CompostSessionPage() {
       }
     }
     // Fetch ingredients
-    const { data: ingr } = await supabase.from('ingredients').select('id, name, quantity').eq('session_id', sessionId);
-    if (ingr) setIngredients(ingr);
+    const { data: ingr } = await supabase.from('ingredients').select('id, name, quantity, condition').eq('session_id', sessionId);
+    if (ingr) {
+      setIngredients(ingr.map(item => ({
+        ...item,
+        condition: (item.condition || 'whole') as 'whole' | 'peel' | 'rotten'
+      })));
+    }
 
     // Fetch chat awal
     const { data: chats } = await supabase.from('chat_history').select('role, message').eq('session_id', sessionId).is('step_id', null).order('created_at');
@@ -61,26 +66,46 @@ export default function CompostSessionPage() {
   // ==========================================
   // 2. LOGIKA EDIT & DELETE BAHAN (CRUD UI)
   // ==========================================
-const handleUpdateQuantity = async (id: string, currentQty: number, delta: number) => {
-  const newQty = currentQty + delta;
-  if (newQty < 1) return;
+  const handleUpdateQuantity = async (id: string, currentQty: number, delta: number) => {
+    const newQty = currentQty + delta;
+    if (newQty < 1) return;
 
-  // 1. Update UI langsung (tanpa tunggu server)
-  setIngredients(prev => prev.map(ingr => ingr.id === id ? { ...ingr, quantity: newQty } : ingr));
+    // 1. Update UI langsung (tanpa tunggu server)
+    setIngredients(prev => prev.map(ingr => ingr.id === id ? { ...ingr, quantity: newQty } : ingr));
 
-  try {
-    // 2. Kirim ke server di background
-    await fetch(`/api/ingredients/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quantity: newQty })
-    });
-  } catch (err) {
-    // 3. Revert jika gagal
-    alert("Gagal update jumlah.");
-    fetchSessionData(); // Reload data asli dari DB
-  }
-};
+    try {
+      // 2. Kirim ke server di background
+      await fetch(`/api/ingredients/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: newQty })
+      });
+    } catch (err) {
+      // 3. Revert jika gagal
+      alert("Gagal update jumlah.");
+      fetchSessionData(); // Reload data asli dari DB
+    }
+  };
+
+  const handleUpdateCondition = async (id: string, newCondition: 'whole' | 'peel' | 'rotten') => {
+    // Optimistic UI update
+    setIngredients(prev => prev.map(ingr => ingr.id === id ? { ...ingr, condition: newCondition } : ingr));
+
+    try {
+      const res = await fetch(`/api/ingredients/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ condition: newCondition })
+      });
+
+      if (!res.ok) {
+        throw new Error("Gagal mengupdate kondisi bahan");
+      }
+    } catch (err) {
+      alert("Gagal memperbarui kondisi bahan.");
+      fetchSessionData(); // Revert ke DB
+    }
+  };
 
   const handleDeleteIngredient = async (id: string, name: string) => {
     if (!confirm(`Hapus ${name.replace('_', ' ')} dari daftar kompos?`)) return;
@@ -293,45 +318,62 @@ const handleUpdateQuantity = async (id: string, currentQty: number, delta: numbe
                   ingredients.map((ingr) => (
                     <div 
                       key={ingr.id} 
-                      className="group flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs hover:border-emerald-300 hover:shadow-md transition-all"
+                      className="group flex flex-col gap-2.5 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs hover:border-emerald-300 hover:shadow-md transition-all"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-emerald-100"></span>
-                        <div>
-                          <p className="font-bold text-sm text-slate-800 capitalize leading-tight">
-                            {ingr.name.replace('_', ' ')}
-                          </p>
-                          <span className="text-[11px] text-slate-400 font-medium">Bahan Terdeteksi</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-emerald-100"></span>
+                          <div>
+                            <p className="font-bold text-sm text-slate-800 capitalize leading-tight">
+                              {ingr.name.replace('_', ' ')}
+                            </p>
+                            <span className="text-[11px] text-slate-400 font-medium">Bahan Terdeteksi</span>
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        {/* QUANTITY CONTROLS */}
-                        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-                          <button 
-                            onClick={() => handleUpdateQuantity(ingr.id, ingr.quantity, -1)} 
-                            className="w-7 h-7 bg-white text-slate-700 rounded-lg font-bold text-xs shadow-2xs hover:bg-rose-50 hover:text-rose-600 transition-colors flex items-center justify-center"
-                          >
-                            -
-                          </button>
-                          <span className="w-7 text-center text-xs font-black text-slate-800">{ingr.quantity}</span>
-                          <button 
-                            onClick={() => handleUpdateQuantity(ingr.id, ingr.quantity, 1)} 
-                            className="w-7 h-7 bg-white text-slate-700 rounded-lg font-bold text-xs shadow-2xs hover:bg-emerald-50 hover:text-emerald-600 transition-colors flex items-center justify-center"
-                          >
-                            +
-                          </button>
-                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          {/* QUANTITY CONTROLS */}
+                          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                            <button 
+                              onClick={() => handleUpdateQuantity(ingr.id, ingr.quantity, -1)} 
+                              className="w-7 h-7 bg-white text-slate-700 rounded-lg font-bold text-xs shadow-2xs hover:bg-rose-50 hover:text-rose-600 transition-colors flex items-center justify-center"
+                            >
+                              -
+                            </button>
+                            <span className="w-7 text-center text-xs font-black text-slate-800">{ingr.quantity}</span>
+                            <button 
+                              onClick={() => handleUpdateQuantity(ingr.id, ingr.quantity, 1)} 
+                              className="w-7 h-7 bg-white text-slate-700 rounded-lg font-bold text-xs shadow-2xs hover:bg-emerald-50 hover:text-emerald-600 transition-colors flex items-center justify-center"
+                            >
+                              +
+                            </button>
+                          </div>
 
-                        {/* DELETE BUTTON */}
-                        <button 
-                          onClick={() => handleDeleteIngredient(ingr.id, ingr.name)} 
-                          className="w-8 h-8 rounded-xl bg-slate-100 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center text-sm" 
-                          title="Hapus Bahan"
-                        >
-                          🗑️
-                        </button>
+                          {/* DELETE BUTTON */}
+                          <button 
+                            onClick={() => handleDeleteIngredient(ingr.id, ingr.name)} 
+                            className="w-8 h-8 rounded-xl bg-slate-100 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center text-sm" 
+                            title="Hapus Bahan"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </div>
+
+                      {/* CONDITION SELECTOR */}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                        <span className="text-slate-500 font-medium">Kondisi Bahan:</span>
+                        <select
+                          value={ingr.condition}
+                          onChange={(e) => handleUpdateCondition(ingr.id, e.target.value as 'whole' | 'peel' | 'rotten')}
+                          className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-700 focus:outline-emerald-500"
+                        >
+                          <option value="whole">🍎 Utuh (Whole)</option>
+                          <option value="peel">🍌 Kulit / Sisa (Peel)</option>
+                          <option value="rotten">🦠 Busuk (Rotten)</option>
+                        </select>
+                      </div>
+
                     </div>
                   ))
                 )}

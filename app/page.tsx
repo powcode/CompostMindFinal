@@ -16,7 +16,7 @@ export default function HomePage() {
   
   // State untuk Pop-up Modal Hasil Deteksi
   const [showModal, setShowModal] = useState(false);
-  const [detectedItems, setDetectedItems] = useState<{ id?: string; name: string; quantity: number; condition?: string }[]>([]);
+  const [detectedItems, setDetectedItems] = useState<{ id?: string; name: string; quantity: number; condition: 'whole' | 'peel' | 'rotten' }[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   // State Tab untuk Mobile / Navigation View
@@ -159,7 +159,7 @@ export default function HomePage() {
         if (data.ingredients && data.ingredients.length > 0) {
           const formatted = data.ingredients.map((item: any) => ({
             ...item,
-            condition: item.condition || 'whole'
+            condition: 'whole' as const
           }));
           setDetectedItems(formatted);
           setSessionId(data.session_id);
@@ -200,12 +200,6 @@ export default function HomePage() {
         console.error('Gagal memperbarui jumlah bahan di database:', err);
       }
     }
-  };
-
-  const updateCondition = (index: number, condition: string) => {
-    const newItems = [...detectedItems];
-    newItems[index].condition = condition;
-    setDetectedItems(newItems);
   };
 
   const handleConfirm = () => {
@@ -577,7 +571,7 @@ export default function HomePage() {
               </div>
               <h2 className="text-xl font-black text-slate-900">Objek Terdeteksi!</h2>
               <p className="text-xs text-slate-500">
-                AI berhasil menemukan bahan berikut. Pilih kondisi dan atur jumlahnya sebelum dilanjutkan.
+                AI berhasil menemukan bahan berikut. Atur jumlahnya sebelum dilanjutkan.
               </p>
             </div>
 
@@ -586,46 +580,30 @@ export default function HomePage() {
               {detectedItems.map((item, index) => (
                 <div
                   key={item.id || index}
-                  className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-2"
+                  className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 flex items-center justify-between"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm capitalize text-slate-800 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                      {item.name.replace('_', ' ')}
-                    </span>
-                    
-                    {/* QUANTITY CONTROLS */}
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => updateQuantity(index, -1)}
-                        className="w-7 h-7 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors active:scale-95 text-xs flex items-center justify-center"
-                      >
-                        -
-                      </button>
-                      <span className="font-extrabold w-4 text-center text-slate-800 text-xs">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(index, 1)}
-                        className="w-7 h-7 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-colors active:scale-95 text-xs flex items-center justify-center"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* CONDITION SELECTOR */}
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-xs">
-                    <span className="text-slate-500 font-medium">Kondisi Bahan:</span>
-                    <select
-                      value={item.condition || 'whole'}
-                      onChange={(e) => updateCondition(index, e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-700 focus:outline-emerald-500"
+                  <span className="font-bold text-sm capitalize text-slate-800 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    {item.name.replace('_', ' ')}
+                  </span>
+                  
+                  {/* QUANTITY CONTROLS */}
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => updateQuantity(index, -1)}
+                      className="w-7 h-7 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors active:scale-95 text-xs flex items-center justify-center"
                     >
-                      <option value="whole">🍎 Utuh (Whole)</option>
-                      <option value="peel">🍌 Kulit / Sisa (Peel)</option>
-                      <option value="rotten">🦠 Busuk (Rotten)</option>
-                    </select>
+                      -
+                    </button>
+                    <span className="font-extrabold w-4 text-center text-slate-800 text-xs">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => updateQuantity(index, 1)}
+                      className="w-7 h-7 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-colors active:scale-95 text-xs flex items-center justify-center"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
               ))}

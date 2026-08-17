@@ -13,9 +13,8 @@ export interface YoloResponse {
 // Bentuk data untuk disimpan ke Supabase
 export interface DbIngredient {
   session_id: string;
-  session_id: string;
   name: string;
   quantity: number;
-  condition: 'whole' | 'peel' | 'rotten'; // ✅ Tipe literal, bukan string biasa
+  condition: 'whole' | 'peel' | 'rotten';
   confidence_score?: number;
 }

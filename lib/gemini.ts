@@ -39,7 +39,7 @@ function extractJsonFromString(text: string): any {
  * Fungsi untuk generate step-by-step tutorial kompos
  */
 export async function generateCompostSteps(ingredients: { name: string, quantity: number, condition?: string }[]) {
-  const ingredientList = ingredients.map(i => `- ${i.quantity}x ${i.name} (kondisi: ${i.condition || 'whole'})`).join("\n");
+  const ingredientList = ingredients.map(i => `- ${i.quantity}x ${i.name} [${i.condition || 'whole'}]`).join("\n");
 
   const prompt = `
     [Peran]
@@ -53,8 +53,8 @@ export async function generateCompostSteps(ingredients: { name: string, quantity
     ${ingredientList}
 
     [Langkah Kerja & Aturan Ketat]
-    1. Jika ADA bahan dengan kondisi 'whole', BERIKAN INSTRUKSI KETAT untuk MENGONSUMSINYA TERLEBIH DAHULU. DILARANG membuat langkah pengomposan langsung untuk makanan utuh yang masih layak makan!
-    2. HANYA hasilkan instruksi pengomposan untuk bahan berkondisi 'peel' (kulit/sisa) atau 'rotten' (busuk).
+    1. Jika ADA bahan dengan kondisi [whole], BERIKAN INSTRUKSI KETAT untuk MENGONSUMSINYA TERLEBIH DAHULU. DILARANG membuat langkah pengomposan langsung untuk makanan utuh yang masih layak makan!
+    2. HANYA hasilkan instruksi pengomposan untuk bahan berkondisi [peel] (kulit/sisa) atau [rotten] (busuk).
     3. DILARANG SANGAT menyarankan pengomposan daging, produk susu, minyak, atau makanan dimasak terlepas dari kondisinya.
     4. Setiap langkah praktis dengan alat minimal.
     5. SETIAP langkah WAJIB punya "expected_output" — deskripsi sensorik (warna, tekstur, bau, kondisi visual) hasil yang BENAR setelah langkah selesai.
@@ -117,7 +117,7 @@ export async function chatWithCompostBot(
   contextIngredients: { name: string, quantity: number, condition?: string }[],
   currentStepContext?: { title: string, instruction: string } | null
 ) {
-  let contextString = `Bahan kompos saat ini: ${contextIngredients.map(i => `${i.quantity}x ${i.name} (${i.condition || 'whole'})`).join(", ")}.`;
+  let contextString = `Bahan kompos saat ini: ${contextIngredients.map(i => `${i.quantity}x ${i.name} [${i.condition || 'whole'}]`).join(", ")}.`;
   
   if (currentStepContext) {
     contextString += `\nUser sedang berada di langkah: "${currentStepContext.title}". Instruksi: "${currentStepContext.instruction}".`;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-// Handler untuk UPDATE quantity (tombol + / -)
+// Handler untuk UPDATE quantity atau condition
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -10,20 +10,36 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { quantity } = body;
+    const { quantity, condition } = body;
 
-    if (typeof quantity !== 'number' || quantity < 1) {
-      return NextResponse.json({ error: 'Quantity minimal 1.' }, { status: 400 });
+    const updates: Record<string, any> = {};
+
+    if (quantity !== undefined) {
+      if (typeof quantity !== 'number' || quantity < 1) {
+        return NextResponse.json({ error: 'Quantity minimal 1.' }, { status: 400 });
+      }
+      updates.quantity = quantity;
+    }
+
+    if (condition !== undefined) {
+      if (!['whole', 'peel', 'rotten'].includes(condition)) {
+        return NextResponse.json({ error: 'Condition harus berupa whole, peel, atau rotten.' }, { status: 400 });
+      }
+      updates.condition = condition;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'Tidak ada data yang diperbarui.' }, { status: 400 });
     }
 
     const { error } = await supabase
       .from('ingredients')
-      .update({ quantity })
+      .update(updates)
       .eq('id', id);
 
     if (error) throw error;
 
-    return NextResponse.json({ status: 'success', message: 'Jumlah diperbarui.' }, { status: 200 });
+    return NextResponse.json({ status: 'success', message: 'Bahan diperbarui.' }, { status: 200 });
   } catch (error: any) {
     console.error('❌ Error PATCH /api/ingredients/[id]:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
