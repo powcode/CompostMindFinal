@@ -61,23 +61,26 @@ export default function CompostSessionPage() {
   // ==========================================
   // 2. LOGIKA EDIT & DELETE BAHAN (CRUD UI)
   // ==========================================
-  const handleUpdateQuantity = async (id: string, currentQty: number, delta: number) => {
-    const newQty = currentQty + delta;
-    if (newQty < 1) return;
+const handleUpdateQuantity = async (id: string, currentQty: number, delta: number) => {
+  const newQty = currentQty + delta;
+  if (newQty < 1) return;
 
-    setIngredients(prev => prev.map(ingr => ingr.id === id ? { ...ingr, quantity: newQty } : ingr));
+  // 1. Update UI langsung (tanpa tunggu server)
+  setIngredients(prev => prev.map(ingr => ingr.id === id ? { ...ingr, quantity: newQty } : ingr));
 
-    try {
-      await fetch(`/api/ingredients/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quantity: newQty })
-      });
-    } catch (err) {
-      alert("Gagal update jumlah.");
-      fetchSessionData();
-    }
-  };
+  try {
+    // 2. Kirim ke server di background
+    await fetch(`/api/ingredients/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quantity: newQty })
+    });
+  } catch (err) {
+    // 3. Revert jika gagal
+    alert("Gagal update jumlah.");
+    fetchSessionData(); // Reload data asli dari DB
+  }
+};
 
   const handleDeleteIngredient = async (id: string, name: string) => {
     if (!confirm(`Hapus ${name.replace('_', ' ')} dari daftar kompos?`)) return;
