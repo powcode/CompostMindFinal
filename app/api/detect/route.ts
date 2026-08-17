@@ -70,11 +70,12 @@ export async function POST(request: NextRequest) {
 
     const sessionId = newSession.id;
 
-    // B. Siapkan data ingredients untuk di-insert
+    // B. Siapkan data ingredients untuk di-insert (Default condition: 'whole')
     const ingredientsToInsert: DbIngredient[] = Array.from(aggregatedMap.entries()).map(([name, data]) => ({
       session_id: sessionId,
       name: name,
       quantity: data.quantity,
+      condition: 'whole',
       confidence_score: data.max_confidence
     }));
 
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
     const { data: insertedIngredients, error: ingredientsError } = await supabase
       .from('ingredients')
       .insert(ingredientsToInsert)
-      .select('id, name, quantity');
+      .select('id, name, quantity, condition');
 
     if (ingredientsError || !insertedIngredients) {
       throw new Error(`Gagal menyimpan bahan ke Supabase: ${ingredientsError?.message}`);
@@ -90,11 +91,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`💾 Berhasil simpan session ${sessionId} dengan ${insertedIngredients.length} jenis bahan.`);
 
-    // 5. Kembalikan respon sukses ke caller (Frontend) dengan ID tiap bahan
+    // 5. Kembalikan respon sukses ke caller (Frontend) dengan ID & condition tiap bahan
     return NextResponse.json({
       status: 'success',
       session_id: sessionId,
-      ingredients: insertedIngredients.map(i => ({ id: i.id, name: i.name, quantity: i.quantity }))
+      ingredients: insertedIngredients.map(i => ({ 
+        id: i.id, 
+        name: i.name, 
+        quantity: i.quantity,
+        condition: i.condition || 'whole'
+      }))
     }, { status: 200 });
 
   } catch (error: any) {

@@ -15,5 +15,6 @@ export interface DbIngredient {
   session_id: string;
   name: string;
   quantity: number;
+  condition: string;
   confidence_score: number | null;
 }
