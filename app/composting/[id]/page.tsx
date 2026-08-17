@@ -228,8 +228,17 @@ export default function CompostSessionPage() {
     setIsChatting(true);
     try {
       const res = await fetch('/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, message: userMsg })
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          session_id: sessionId, 
+          message: userMsg,
+          ingredients: ingredients.map(ingr => ({
+            name: ingr.name,
+            quantity: ingr.quantity,
+            condition: ingr.condition
+          }))
+        })
       });
       const data = await res.json();
       if (res.ok) setChatMessages(prev => [...prev, { role: 'bot', message: data.reply }]);
