@@ -11,27 +11,45 @@ export async function POST(
   try {
     console.log("🔍 MENCARI SESSION ID:", sessionId);
     
-    // 1. Ambil semua bahan untuk sesi ini dari Supabase
-    const { data: ingredients, error: fetchError } = await supabase
-      .from('ingredients')
-      .select('name, quantity')
-      .eq('session_id', sessionId);
-
-    console.log("📦 HASIL QUERY SUPABASE:", ingredients);
-
-    if (fetchError || !ingredients || ingredients.length === 0) {
-      return NextResponse.json({ error: 'Tidak ada bahan ditemukan untuk sesi ini.' }, { status: 404 });
+    // ✅ LANGKAH 1: Cek apakah frontend mengirim payload ingredients terbaru
+    let ingredientsPayload;
+    try {
+      const body = await request.json();
+      if (body?.ingredients && Array.isArray(body.ingredients)) {
+        ingredientsPayload = body.ingredients;
+        console.log("📦 Menggunakan payload ingredients dari frontend:", ingredientsPayload);
+      }
+    } catch (e) {
+      // Tidak masalah jika body bukan JSON atau kosong
     }
 
-    // 2. Update status session menjadi 'generating_steps'
+    // ✅ LANGKAH 2: Jika tidak ada payload, fallback ambil dari DB (TAPI HARUS INCLUDE 'condition')
+    if (!ingredientsPayload || ingredientsPayload.length === 0) {
+      const { data: dbIngredients, error: fetchError } = await supabase
+        .from('ingredients')
+        .select('name, quantity, condition') // ← WAJIB TAMBAHKAN 'condition' DI SINI
+        .eq('session_id', sessionId);
+
+      if (fetchError || !dbIngredients || dbIngredients.length === 0) {
+        return NextResponse.json({ error: 'Tidak ada bahan ditemukan untuk sesi ini.' }, { status: 404 });
+      }
+      
+      ingredientsPayload = dbIngredients.map(i => ({
+        ...i,
+        condition: i.condition || 'whole' // Fallback aman jika data lama belum punya condition
+      }));
+      console.log(" Menggunakan ingredients dari database:", ingredientsPayload);
+    }
+
+    // ✅ LANGKAH 3: Update status session
     await supabase.from('sessions').update({ status: 'generating_steps' }).eq('id', sessionId);
 
     console.log(`🧠 Meminta Gemini membuat tutorial untuk session ${sessionId}...`);
     
-    // 3. PANGGIL GEMINI!
-    const generatedSteps = await generateCompostSteps(ingredients);
+    // ✅ LANGKAH 4: Kirim data LENGKAP (termasuk condition) ke Gemini
+    const generatedSteps = await generateCompostSteps(ingredientsPayload);
 
-    // 4. Format hasil Gemini agar siap masuk ke database
+    // 5. Format hasil Gemini agar siap masuk ke database
     const stepsToInsert = generatedSteps.map((step: any, index: number) => ({
       session_id: sessionId,
       step_order: index + 1,
@@ -41,7 +59,7 @@ export async function POST(
       is_completed: false
     }));
 
-    // 5. Simpan ke tabel 'steps'
+    // 6. Simpan ke tabel 'steps'
     const { error: insertError } = await supabase
       .from('steps')
       .insert(stepsToInsert);
@@ -50,7 +68,7 @@ export async function POST(
       throw new Error(`Gagal menyimpan steps ke DB: ${insertError.message}`);
     }
 
-    // 6. Update status session menjadi 'active'
+    // 7. Update status session menjadi 'active'
     await supabase.from('sessions').update({ status: 'active' }).eq('id', sessionId);
 
     console.log(`✅ Berhasil generate ${stepsToInsert.length} langkah untuk session ${sessionId}`);

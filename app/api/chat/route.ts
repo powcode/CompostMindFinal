@@ -11,11 +11,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'session_id dan message wajib diisi.' }, { status: 400 });
     }
 
-    // 1. Ambil konteks bahan dari database
-    const { data: ingredients } = await supabase
+    // 1. Ambil konteks bahan FRESH dari database (TERMASUK KOLOM CONDITION!)
+    const { data: ingredients, error: ingError } = await supabase
       .from('ingredients')
-      .select('name, quantity')
+      .select('name, quantity, condition') // ✅ Tambahkan 'condition' di sini
       .eq('session_id', session_id);
+
+    if (ingError) throw new Error(`Gagal ambil bahan: ${ingError.message}`);
 
     // 2. Ambil konteks step (jika user chat dari halaman step spesifik)
     let currentStepContext = null;
@@ -37,8 +39,9 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`💬 CompostBot memproses: "${message}"...`);
+    console.log(`📦 Data bahan real-time dari DB:`, ingredients); // Debug log
 
-    // 4. PANGGIL GEMINI CHAT! 🔥
+    // 4. PANGGIL GEMINI CHAT DENGAN DATA LENGKAP! 🔥
     const botReply = await chatWithCompostBot(message, ingredients || [], currentStepContext);
 
     // 5. Simpan balasan BOT ke riwayat chat
