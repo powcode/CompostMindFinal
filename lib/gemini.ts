@@ -110,13 +110,17 @@ ${ingredientList}
  */
 export async function chatWithCompostBot(
   userMessage: string, 
-  ingredients: { name: string; quantity: number; condition?: string }[], // ✅ Nama parameter konsisten
+  ingredients: { name: string; quantity: number; condition?: string }[],
   currentStepContext?: { title: string; instruction: string } | null
 ) {
-  // ✅ Gunakan parameter 'ingredients' secara eksplisit di dalam template literal
-  let contextString = `Bahan kompos saat ini: ${ingredients.map(i => 
-    `${i.quantity}x ${i.name} [${(i.condition || 'whole').toUpperCase()}]`
-  ).join(", ")}.`;
+  let contextString = `Bahan kompos saat ini: ${ingredients.map(i => {
+    let cond = i.condition;
+    if (!cond) {
+      console.warn("⚠️ Missing condition data, assuming whole");
+      cond = 'whole';
+    }
+    return `${i.quantity}x ${i.name} [${cond.toUpperCase()}]`;
+  }).join(", ")}.`;
   
   if (currentStepContext) {
     contextString += `\nUser sedang di langkah: "${currentStepContext.title}".`;
