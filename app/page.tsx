@@ -11,11 +11,12 @@ export default function HomePage() {
   
   // State untuk Gambar yang akan diproses
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
   
   // State untuk Pop-up Modal Hasil Deteksi
   const [showModal, setShowModal] = useState(false);
-  const [detectedItems, setDetectedItems] = useState<{name: string, quantity: number}[]>([]);
+  const [detectedItems, setDetectedItems] = useState<{ id?: string; name: string; quantity: number }[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   // State Tab untuk Mobile / Navigation View
@@ -84,6 +85,14 @@ export default function HomePage() {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setImagePreview(dataUrl);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+            setImageFile(file);
+          }
+        }, 'image/jpeg', 0.8);
+
         stopCamera();
       }
     }
@@ -95,6 +104,7 @@ export default function HomePage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -106,6 +116,7 @@ export default function HomePage() {
   // Fungsi Reset
   const handleRetake = () => {
     setImagePreview(null);
+    setImageFile(null);
     setShowModal(false);
     setSessionId(null);
     if (inputMode === 'camera') {
@@ -117,16 +128,25 @@ export default function HomePage() {
   // LOGIKA DETEKSI AI (YOLO)
   // ==========================================
   const handleDetect = async () => {
-    if (!imagePreview) return;
+    if (!imagePreview && !imageFile) return;
     setIsDetecting(true);
 
     try {
-      const resBlob = await fetch(imagePreview);
-      const blob = await resBlob.blob();
-      const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+      let fileToSend = imageFile;
+
+      if (!fileToSend && imagePreview) {
+        const resBlob = await fetch(imagePreview);
+        const blob = await resBlob.blob();
+        fileToSend = new File([blob], "capture.jpg", { type: "image/jpeg" });
+      }
+
+      if (!fileToSend) {
+        alert("Gagal membaca file gambar.");
+        return;
+      }
 
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', fileToSend);
 
       const res = await fetch('/api/detect', {
         method: 'POST',
@@ -154,11 +174,28 @@ export default function HomePage() {
     }
   };
 
-  const updateQuantity = (index: number, delta: number) => {
+  const updateQuantity = async (index: number, delta: number) => {
     const newItems = [...detectedItems];
-    newItems[index].quantity += delta;
-    if (newItems[index].quantity < 1) newItems[index].quantity = 1;
+    const item = newItems[index];
+    const newQuantity = item.quantity + delta;
+
+    if (newQuantity < 1) return;
+
+    item.quantity = newQuantity;
     setDetectedItems(newItems);
+
+    // Optimistic backend update jika ID bahan tersedia
+    if (item.id) {
+      try {
+        await fetch(`/api/ingredients/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: newQuantity }),
+        });
+      } catch (err) {
+        console.error('Gagal memperbarui jumlah bahan di database:', err);
+      }
+    }
   };
 
   const handleConfirm = () => {
@@ -239,7 +276,7 @@ export default function HomePage() {
               {/* MODE TOGGLE SWITCH */}
               <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1 mb-5">
                 <button
-                  onClick={() => { setInputMode('camera'); setImagePreview(null); }}
+                  onClick={() => { setInputMode('camera'); setImagePreview(null); setImageFile(null); }}
                   className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${
                     inputMode === 'camera'
                       ? 'bg-white text-emerald-800 shadow-sm'
@@ -538,7 +575,7 @@ export default function HomePage() {
             <div className="space-y-2.5 mb-6 max-h-56 overflow-y-auto pr-1">
               {detectedItems.map((item, index) => (
                 <div
-                  key={index}
+                  key={item.id || index}
                   className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200/80"
                 >
                   <span className="font-bold text-sm capitalize text-slate-800 flex items-center gap-2">

@@ -14,38 +14,42 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Forward (Teruskan) gambar ke Server Python FastAPI (YOLOv11)
-    // Kita buat FormData baru untuk dikirim via axios
     const pythonFormData = new FormData();
     pythonFormData.append('file', file, file.name);
 
-    console.log('🚀 Mengirim gambar ke Python YOLO server...');
+    // Sanitasi URL Python AI untuk mencegah double slash (e.g. ngrok.dev//detect)
+    const rawUrl = process.env.PYTHON_AI_URL || 'http://127.0.0.1:8000';
+    const baseUrl = rawUrl.replace(/\/+$/, '');
+    const targetUrl = `${baseUrl}/detect`;
+
+    console.log(`🚀 Mengirim gambar ke Python YOLO server at: ${targetUrl}`);
     
-    // Panggil endpoint Python kita di port 8000
     const pythonResponse = await axios.post<YoloResponse>(
-      `${process.env.PYTHON_AI_URL}/detect`, 
+      targetUrl, 
       pythonFormData, 
       {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        maxBodyLength: Infinity, // Penting untuk upload file besar
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        maxBodyLength: Infinity,
+        timeout: 60000 // 60 detik timeout untuk menangani Colab cold start
       }
     );
 
     const yoloData = pythonResponse.data;
     console.log('✅ Hasil dari YOLO:', yoloData.detections);
 
-    if (yoloData.detections.length === 0) {
+    if (!yoloData.detections || yoloData.detections.length === 0) {
       return NextResponse.json({ message: 'Tidak ada objek compostable yang terdeteksi.', detections: [] }, { status: 200 });
     }
 
     // 3. PROSES DATA: Kelompokkan deteksi & hitung jumlahnya (Aggregation)
-    // YOLO mendeteksi: [{name: 'apple'}, {name: 'apple'}, {name: 'banana'}]
-    // Kita ubah jadi: [{name: 'apple', quantity: 2}, {name: 'banana', quantity: 1}]
     const aggregatedMap = new Map<string, { quantity: number, max_confidence: number }>();
 
     for (const item of yoloData.detections) {
       const current = aggregatedMap.get(item.name) || { quantity: 0, max_confidence: 0 };
       current.quantity += 1;
-      // Simpan confidence tertinggi saja untuk referensi
       if (item.confidence > current.max_confidence) {
         current.max_confidence = item.confidence;
       }
@@ -74,33 +78,32 @@ export async function POST(request: NextRequest) {
       confidence_score: data.max_confidence
     }));
 
-    // C. Insert semua bahan ke tabel 'ingredients'
-    const { error: ingredientsError } = await supabase
+    // C. Insert semua bahan ke tabel 'ingredients' dan dapatkan ID yang di-generate
+    const { data: insertedIngredients, error: ingredientsError } = await supabase
       .from('ingredients')
-      .insert(ingredientsToInsert);
+      .insert(ingredientsToInsert)
+      .select('id, name, quantity');
 
-    if (ingredientsError) {
-      throw new Error(`Gagal menyimpan bahan ke Supabase: ${ingredientsError.message}`);
+    if (ingredientsError || !insertedIngredients) {
+      throw new Error(`Gagal menyimpan bahan ke Supabase: ${ingredientsError?.message}`);
     }
 
-    console.log(`💾 Berhasil simpan session ${sessionId} dengan ${ingredientsToInsert.length} jenis bahan.`);
+    console.log(`💾 Berhasil simpan session ${sessionId} dengan ${insertedIngredients.length} jenis bahan.`);
 
-    // 5. Kembalikan respon sukses ke caller (Nanti ke Frontend)
-    // Kita kirim sessionId agar frontend tahu harus redirect ke mana
+    // 5. Kembalikan respon sukses ke caller (Frontend) dengan ID tiap bahan
     return NextResponse.json({
       status: 'success',
       session_id: sessionId,
-      ingredients: ingredientsToInsert.map(i => ({id: i.id, name: i.name, quantity: i.quantity }))
+      ingredients: insertedIngredients.map(i => ({ id: i.id, name: i.name, quantity: i.quantity }))
     }, { status: 200 });
 
   } catch (error: any) {
     console.error('❌ Terjadi error di /api/detect:', error);
     
-    // Jika error karena Python server mati
     if (error.code === 'ECONNREFUSED') {
-      return NextResponse.json({ error: 'Server AI Python sedang offline. Pastikan uvicorn berjalan di port 8000.' }, { status: 503 });
+      return NextResponse.json({ error: 'Server AI Python sedang offline. Pastikan server Python berjalan.' }, { status: 503 });
     }
 
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
-}   
+}

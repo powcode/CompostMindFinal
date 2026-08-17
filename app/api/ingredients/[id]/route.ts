@@ -6,7 +6,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params; // Wajib await di Next.js 16+
+  const { id } = await params;
 
   try {
     const body = await request.json();

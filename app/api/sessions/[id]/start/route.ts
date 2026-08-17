@@ -4,13 +4,11 @@ import { generateCompostSteps } from '@/lib/gemini';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> } // ← Tambahkan Promise<>
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: sessionId } = await params; // ← Await dan rename biar jelas
+  const { id: sessionId } = await params;
 
   try {
-    // ... sisa kode tetap sama ...
-    // --- DEBUG LOG ANDA (Biarkan sebentar sampai benar-benar sukses) ---
     console.log("🔍 MENCARI SESSION ID:", sessionId);
     
     // 1. Ambil semua bahan untuk sesi ini dari Supabase
@@ -20,7 +18,6 @@ export async function POST(
       .eq('session_id', sessionId);
 
     console.log("📦 HASIL QUERY SUPABASE:", ingredients);
-    // --------------------------------------------------------------------
 
     if (fetchError || !ingredients || ingredients.length === 0) {
       return NextResponse.json({ error: 'Tidak ada bahan ditemukan untuk sesi ini.' }, { status: 404 });
@@ -31,11 +28,8 @@ export async function POST(
 
     console.log(`🧠 Meminta Gemini membuat tutorial untuk session ${sessionId}...`);
     
-    // 3. PANGGIL GEMINI! 🔥
+    // 3. PANGGIL GEMINI!
     const generatedSteps = await generateCompostSteps(ingredients);
-
-    // 4. Format hasil Gemini
-    // ... kode sebelumnya ...
 
     // 4. Format hasil Gemini agar siap masuk ke database
     const stepsToInsert = generatedSteps.map((step: any, index: number) => ({
@@ -43,11 +37,9 @@ export async function POST(
       step_order: index + 1,
       title: step.title,
       instruction: step.instruction,
-      expected_output: step.expected_output,  // ✅ TAMBAHKAN BARIS INI
+      expected_output: step.expected_output,
       is_completed: false
     }));
-
-// ... kode selanjutnya tetap sama ...
 
     // 5. Simpan ke tabel 'steps'
     const { error: insertError } = await supabase
