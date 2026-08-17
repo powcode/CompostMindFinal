@@ -30,7 +30,7 @@ function extractJsonFromString(text: string): any {
       }
     }
     
-    console.error("❌ Teks asli dari Gemini tidak mengandung JSON Array:", text);
+    console.error(" Teks asli dari Gemini tidak mengandung JSON Array:", text);
     throw new Error("Gemini tidak mengembalikan format Array JSON.");
   }
 }
@@ -38,50 +38,45 @@ function extractJsonFromString(text: string): any {
 /**
  * Fungsi untuk generate step-by-step tutorial kompos
  */
-export async function generateCompostSteps(ingredients: { name: string, quantity: number, condition?: string }[]) {
-  const ingredientList = ingredients.map(i => `- ${i.quantity}x ${i.name} [${i.condition || 'whole'}]`).join("\n");
+export async function generateCompostSteps(ingredients: { name: string; quantity: number; condition?: string }[]) {
+  // Format konteks agar Gemini paham kondisi setiap bahan
+  const ingredientList = ingredients.map(i => 
+    `- ${i.quantity}x ${i.name} [KONDISI: ${(i.condition || 'whole').toUpperCase()}]`
+  ).join("\n");
 
   const prompt = `
-    [Peran]
-    Generator JSON CompostMind - Ahli Kompos Rumah Tangga & Pencegahan Food Waste
+[Peran]
+Generator JSON CompostMind - Ahli Kompos Rumah Tangga & Pencegahan Food Waste
 
-    [Tujuan]
-    Menghasilkan panduan kompos 3-5 langkah dalam format JSON murni.
+[Tujuan]
+Menghasilkan panduan kompos 3-5 langkah dalam format JSON murni berdasarkan KONDISI bahan.
 
-    [Konteks]
-    User skala rumah tangga kecil dengan bahan kompos: 
-    ${ingredientList}
+[Konteks Bahan]
+${ingredientList}
 
-    [Langkah Kerja & Aturan Ketat]
-    1. Jika ADA bahan dengan kondisi [whole], BERIKAN INSTRUKSI KETAT untuk MENGONSUMSINYA TERLEBIH DAHULU. DILARANG membuat langkah pengomposan langsung untuk makanan utuh yang masih layak makan!
-    2. HANYA hasilkan instruksi pengomposan untuk bahan berkondisi [peel] (kulit/sisa) atau [rotten] (busuk).
-    3. DILARANG SANGAT menyarankan pengomposan daging, produk susu, minyak, atau makanan dimasak terlepas dari kondisinya.
-    4. Setiap langkah praktis dengan alat minimal.
-    5. SETIAP langkah WAJIB punya "expected_output" — deskripsi sensorik (warna, tekstur, bau, kondisi visual) hasil yang BENAR setelah langkah selesai.
-    6. Output RAW JSON Array tanpa markdown.
+[Langkah Kerja & Aturan Ketat]
+1. JIKA ADA bahan dengan [KONDISI: WHOLE]: 
+   - LANGKAH PERTAMA WAJIB: Instruksikan user untuk MENGONSUMSI atau memisahkan bagian utuh tersebut.
+   - DILARANG mengomposkan makanan utuh yang masih layak makan!
+2. HANYA hasilkan instruksi pengomposan untuk bahan [PEEL] atau [ROTTEN].
+3. DILARANG KERAS menyarankan pengomposan daging, susu, minyak, atau makanan berminyak.
+4. SETIAP langkah WAJIB punya "expected_output" berupa deskripsi sensorik (warna, tekstur, bau).
+5. Output HARUS raw JSON Array tanpa markdown atau teks pembuka.
 
-    [Batasan]
-    - WAJIB raw JSON Array, bukan markdown.
-    - Setiap object WAJIB punya 3 key: "title", "instruction", "expected_output".
-    - "expected_output" HARUS deskriptif sensorik, BUKAN kalimat kosong atau generic.
-    - DILARANG markdown code block.
-    - DILARANG teks sebelum '[' atau setelah ']'.
-
-    [Format Output]
-    PENTING: Ikuti struktur ini PERSIS. Jangan hilangkan expected_output.
-    [
-      {
-        "title": "Konsumsi / Pisahkan Bahan Utuh",
-        "instruction": "Apel masih utuh segar. Silakan makan atau olah terlebih dahulu. Ambil kulit atau sisanya saja untuk dikomposkan.",
-        "expected_output": "Buah utuh telah dikonsumsi/dipisahkan, menyisakan kulit atau bagian sisa/busuk yang siap diolah."
-      },
-      {
-        "title": "Cacah Kulit Buah",
-        "instruction": "Potong kulit pisang dan sisa buah menjadi ukuran 2-3 cm.",
-        "expected_output": "Cacahan kulit buah berukuran seragam 2-3 cm, aroma khas buah segar tanpa bau busuk tajam."
-      }
-    ]
-    `;
+[Format Output Wajib]
+[
+  {
+    "title": "Konsumsi / Pisahkan Bahan Utuh",
+    "instruction": "Apel masih utuh segar. Silakan makan terlebih dahulu. Ambil kulit/sisanya saja untuk dikompos.",
+    "expected_output": "Buah utuh telah dikonsumsi, menyisakan kulit/sisa yang siap diolah."
+  },
+  {
+    "title": "Cacah Kulit Buah",
+    "instruction": "Potong kulit pisang menjadi ukuran 2-3 cm.",
+    "expected_output": "Cacahan seragam 2-3 cm, aroma buah segar tanpa bau busuk tajam."
+  }
+]
+  `;
 
   try {
     console.log(`🧠 Mengirim prompt ke ${MODEL_NAME}...`);
@@ -96,15 +91,16 @@ export async function generateCompostSteps(ingredients: { name: string, quantity
       throw new Error("Hasil ekstraksi bukan berupa Array.");
     }
 
+    // Validasi struktur dasar
     for (const step of steps) {
-      if (!step.title || !step.instruction) {
+      if (!step.title || !step.instruction || !step.expected_output) {
         throw new Error(`Step tidak lengkap: ${JSON.stringify(step)}`);
       }
     }
 
     return steps;
   } catch (error: any) {
-    console.error("🚨 FATAL ERROR DI GEMINI PARSER:", error.message);
+    console.error(" FATAL ERROR DI GEMINI PARSER:", error.message);
     throw new Error("Gemini gagal menghasilkan format langkah yang valid. Cek terminal untuk detail.");
   }
 }
@@ -114,26 +110,33 @@ export async function generateCompostSteps(ingredients: { name: string, quantity
  */
 export async function chatWithCompostBot(
   userMessage: string, 
-  contextIngredients: { name: string, quantity: number, condition?: string }[],
-  currentStepContext?: { title: string, instruction: string } | null
+  ingredients: { name: string; quantity: number; condition?: string }[], // ✅ Nama parameter konsisten
+  currentStepContext?: { title: string; instruction: string } | null
 ) {
-  let contextString = `Bahan kompos saat ini: ${contextIngredients.map(i => `${i.quantity}x ${i.name} [${i.condition || 'whole'}]`).join(", ")}.`;
+  // ✅ Gunakan parameter 'ingredients' secara eksplisit di dalam template literal
+  let contextString = `Bahan kompos saat ini: ${ingredients.map(i => 
+    `${i.quantity}x ${i.name} [${(i.condition || 'whole').toUpperCase()}]`
+  ).join(", ")}.`;
   
   if (currentStepContext) {
-    contextString += `\nUser sedang berada di langkah: "${currentStepContext.title}". Instruksi: "${currentStepContext.instruction}".`;
+    contextString += `\nUser sedang di langkah: "${currentStepContext.title}".`;
   }
 
   const chatModel = genAI.getGenerativeModel({ model: MODEL_NAME });
 
   const prompt = `
-Kamu adalah CompostBot, asisten AI ramah untuk aplikasi CompostMind.
+[PERAN] Kamu adalah CompostBot, asisten ramah CompostMind.
+
+[KONTEKS]
 ${contextString}
 
-Aturan Penting:
-1. Dorong pengguna untuk mengonsumsi makanan yang masih utuh (kondisi 'whole') daripada dibuang.
-2. Jawab pertanyaan user dengan singkat, padat, jelas dalam Bahasa Indonesia (Maksimal 3 kalimat).
+[ATURAN RESPON]
+1. JIKA ada bahan [WHOLE]: Dorong user untuk mengonsumsinya dulu, jangan dikompos!
+2. JIKA ada bahan [PEEL]/[ROTTEN]: Bantu user mengomposkannya dengan aman.
+3. DILARANG mengomposkan daging, susu, minyak.
+4. Bahasa Indonesia santai, maksimal 3 kalimat.
 
-Pertanyaan user: "${userMessage}"
+[Pertanyaan User] "${userMessage}"
   `;
 
   try {
@@ -141,6 +144,6 @@ Pertanyaan user: "${userMessage}"
     return result.response.text();
   } catch (error: any) {
     console.error("❌ Error CompostBot:", error.message);
-    return "Maaf, koneksi ke otak AI saya sedang terganggu. Coba lagi nanti ya!";
+    return "Maaf, koneksi ke otak AI saya sedang terganggu. Coba tanya lagi ya!";
   }
 }

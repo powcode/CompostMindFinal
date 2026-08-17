@@ -120,6 +120,26 @@ export default function CompostSessionPage() {
     }
   };
 
+const handleConditionChange = async (id: string, newCondition: 'whole' | 'peel' | 'rotten') => {
+  // 1. UPDATE STATE LOKAL LANGSUNG (Optimistic Update)
+  // Ini yang membuat UI berubah instan dan data siap dibaca chatbot
+  setIngredients(prev => prev.map(ingr => 
+    ingr.id === id ? { ...ingr, condition: newCondition } : ingr
+  ));
+
+  // 2. Kirim ke Database di background
+  try {
+    await fetch(`/api/ingredients/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ condition: newCondition })
+    });
+  } catch (err) {
+    console.error("Gagal update kondisi:", err);
+    // Opsional: Revert state jika gagal
+  }
+};
+
   // ==========================================
   // 3. LOGIKA MINI LIVE SCANNER (Tambah Bahan)
   // ==========================================
@@ -219,33 +239,50 @@ export default function CompostSessionPage() {
   // ==========================================
   // 4. LOGIKA CHATBOT & START
   // ==========================================
-  const handleSendChat = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    const userMsg = chatInput;
-    setChatMessages(prev => [...prev, { role: 'user', message: userMsg }]);
-    setChatInput('');
-    setIsChatting(true);
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          session_id: sessionId, 
-          message: userMsg,
-          ingredients: ingredients.map(ingr => ({
-            name: ingr.name,
-            quantity: ingr.quantity,
-            condition: ingr.condition
-          }))
-        })
-      });
-      const data = await res.json();
-      if (res.ok) setChatMessages(prev => [...prev, { role: 'bot', message: data.reply }]);
-    } catch (err) {
-      setChatMessages(prev => [...prev, { role: 'bot', message: 'Error koneksi bot.' }]);
-    } finally { setIsChatting(false); }
-  };
+ const handleSendChat = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!chatInput.trim()) return;
+  
+  const userMsg = chatInput;
+  setChatMessages(prev => [...prev, { role: 'user', message: userMsg }]);
+  setChatInput('');
+  setIsChatting(true);
+
+  try {
+    // ✅ Defensive Check: Pastikan ingredients tidak kosong/null sebelum dikirim
+    const safeIngredients = ingredients?.map(ingr => ({
+      name: ingr.name,
+      quantity: ingr.quantity,
+      condition: ingr.condition || 'whole' // Fallback aman jika condition undefined
+    })) || [];
+
+    const res = await fetch('/api/chat', {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        session_id: sessionId, 
+        message: userMsg,
+        ingredients: safeIngredients // Gunakan variabel yang sudah diamankan
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      setChatMessages(prev => [...prev, { role: 'bot', message: data.reply }]);
+    } else {
+      // Tampilkan error dari server jika ada
+      throw new Error(data.error || 'Gagal mendapatkan respons');
+    }
+  } catch (err) {
+    console.error("Chat error:", err);
+    setChatMessages(prev => [...prev, { 
+      role: 'bot', 
+      message: 'Maaf, saya sedang kesulitan terhubung. Coba lagi ya!' 
+    }]);
+  } finally { 
+    setIsChatting(false); 
+  }
+};
 
   const handleStart = async () => {
     if (ingredients.length === 0) return alert("List bahan kosong! Scan atau tambah bahan terlebih dahulu.");
