@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       status: 'success',
       session_id: sessionId,
-      ingredients: ingredientsToInsert.map(i => ({ name: i.name, quantity: i.quantity }))
+      ingredients: ingredientsToInsert.map(i => ({id: i.id, name: i.name, quantity: i.quantity }))
     }, { status: 200 });
 
   } catch (error: any) {
