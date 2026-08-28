@@ -9,6 +9,8 @@ interface SessionData {
   id: string;
   status: string;
   created_at: string;
+  user_id?: string | null;
+  guest_identifier?: string | null;
   ingredients: { name: string; quantity: number }[];
 }
 
@@ -21,16 +23,19 @@ export default function CompostDashboardPage() {
     async function fetchSessions() {
       setLoading(true);
       try {
-        // 1. Ambil semua session, urutkan dari yang terbaru
-        const { data: sessionsData, error } = await supabase
-          .from('sessions')
-          .select('id, status, created_at')
-          .order('created_at', { ascending: false });
+        const { data: { user } } = await supabase.auth.getUser();
+
+        let query = supabase.from('sessions').select('id, status, created_at, user_id, guest_identifier').order('created_at', { ascending: false });
+
+        if (user) {
+          query = query.eq('user_id', user.id);
+        }
+
+        const { data: sessionsData, error } = await query;
 
         if (error) throw error;
 
         if (sessionsData && sessionsData.length > 0) {
-          // 2. Untuk setiap session, ambil bahan-bahannya (ingredients) agar bisa ditampilkan preview-nya
           const sessionsWithIngredients = await Promise.all(
             sessionsData.map(async (session) => {
               const { data: ingrData } = await supabase
@@ -45,6 +50,8 @@ export default function CompostDashboardPage() {
             })
           );
           setSessions(sessionsWithIngredients);
+        } else {
+          setSessions([]);
         }
       } catch (error) {
         console.error("Gagal mengambil riwayat sesi:", error);
@@ -56,13 +63,11 @@ export default function CompostDashboardPage() {
     fetchSessions();
   }, []);
 
-  // Fungsi untuk format tanggal agar lebih mudah dibaca
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString('id-ID', options);
   };
 
-  // Fungsi untuk menentukan warna badge status
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pre_composting':
@@ -78,16 +83,8 @@ export default function CompostDashboardPage() {
     }
   };
 
-  // Handle klik card sesi
   const handleSessionClick = (session: SessionData) => {
-    if (session.status === 'active' || session.status === 'completed') {
-      // Jika sudah aktif, cari step pertama atau step yang sedang berjalan, lalu redirect ke step
-      // Untuk simplisitas MVP, kita redirect ke halaman /composting/[id] dulu, nanti logika di sana yang akan redirect ke step 1
-      router.push(`/composting/${session.id}`);
-    } else {
-      // Jika masih persiapan, masuk ke halaman pre-compost
-      router.push(`/composting/${session.id}`);
-    }
+    router.push(`/composting/${session.id}`);
   };
 
   return (
@@ -124,7 +121,6 @@ export default function CompostDashboardPage() {
                 onClick={() => handleSessionClick(session)}
                 className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex flex-col"
               >
-                {/* Card Header */}
                 <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-gray-50">
                   <div>
                     <h3 className="font-bold text-gray-800 text-lg">Sesi {session.id.slice(0, 6).toUpperCase()}</h3>
@@ -133,7 +129,6 @@ export default function CompostDashboardPage() {
                   {getStatusBadge(session.status)}
                 </div>
 
-                {/* Card Body (List Bahan Preview) */}
                 <div className="p-5 flex-1">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Bahan Terdeteksi:</p>
                   {session.ingredients.length > 0 ? (
@@ -149,7 +144,6 @@ export default function CompostDashboardPage() {
                   )}
                 </div>
 
-                {/* Card Footer */}
                 <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 text-right">
                   <span className="text-green-600 text-sm font-bold group-hover:translate-x-1 transition-transform inline-block">
                     {session.status === 'completed' ? 'Lihat Riwayat →' : 'Lanjutkan Sesi →'}

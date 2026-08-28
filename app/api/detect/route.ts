@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/server';
 import { YoloResponse, DbIngredient } from '@/lib/types';
+import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Terima FormData (berisi gambar) dari request
+    // 1. Check Authenticated User or Guest Cookie
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const cookieStore = await cookies();
+    let guestId = cookieStore.get('guest_id')?.value;
+    if (!user && !guestId) {
+      guestId = `guest_${crypto.randomUUID()}`;
+    }
+
+    // 2. Terima FormData (berisi gambar) dari request
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
@@ -13,11 +24,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tidak ada file gambar yang dikirim.' }, { status: 400 });
     }
 
-    // 2. Forward (Teruskan) gambar ke Server Python FastAPI (YOLOv11)
+    // 3. Forward gambar ke Server Python FastAPI (YOLOv11)
     const pythonFormData = new FormData();
     pythonFormData.append('file', file, file.name);
 
-    // Sanitasi URL Python AI untuk mencegah double slash (e.g. ngrok.dev//detect)
     const rawUrl = process.env.PYTHON_AI_URL || 'http://127.0.0.1:8000';
     const baseUrl = rawUrl.replace(/\/+$/, '');
     const targetUrl = `${baseUrl}/detect`;
@@ -33,7 +43,7 @@ export async function POST(request: NextRequest) {
           'ngrok-skip-browser-warning': 'true'
         },
         maxBodyLength: Infinity,
-        timeout: 60000 // 60 detik timeout untuk menangani Colab cold start
+        timeout: 60000
       }
     );
 
@@ -44,7 +54,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Tidak ada objek compostable yang terdeteksi.', detections: [] }, { status: 200 });
     }
 
-    // 3. PROSES DATA: Kelompokkan deteksi & hitung jumlahnya (Aggregation)
+    // 4. PROSES DATA: Kelompokkan deteksi & hitung jumlahnya
     const aggregatedMap = new Map<string, { quantity: number, max_confidence: number }>();
 
     for (const item of yoloData.detections) {
@@ -56,11 +66,14 @@ export async function POST(request: NextRequest) {
       aggregatedMap.set(item.name, current);
     }
 
-    // 4. Simpan ke Supabase (Fase Pre-Composting)
-    // A. Buat Session Baru dulu di tabel 'sessions'
+    // 5. Simpan ke Supabase (Fase Pre-Composting)
+    const sessionPayload = user 
+      ? { status: 'pre_composting', user_id: user.id, guest_identifier: null }
+      : { status: 'pre_composting', user_id: null, guest_identifier: guestId };
+
     const { data: newSession, error: sessionError } = await supabase
       .from('sessions')
-      .insert({ status: 'pre_composting', guest_identifier: 'guest_demo' })
+      .insert(sessionPayload)
       .select('id')
       .single();
 
@@ -70,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     const sessionId = newSession.id;
 
-    // B. Siapkan data ingredients untuk di-insert (Default condition: 'whole')
+    // Siapkan data ingredients untuk di-insert
     const ingredientsToInsert: DbIngredient[] = Array.from(aggregatedMap.entries()).map(([name, data]) => ({
       session_id: sessionId,
       name: name,
@@ -79,7 +92,6 @@ export async function POST(request: NextRequest) {
       confidence_score: data.max_confidence
     }));
 
-    // C. Insert semua bahan ke tabel 'ingredients' dan dapatkan ID yang di-generate
     const { data: insertedIngredients, error: ingredientsError } = await supabase
       .from('ingredients')
       .insert(ingredientsToInsert)
@@ -91,8 +103,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`💾 Berhasil simpan session ${sessionId} dengan ${insertedIngredients.length} jenis bahan.`);
 
-    // 5. Kembalikan respon sukses ke caller (Frontend) dengan ID & condition tiap bahan
-    return NextResponse.json({
+    const response = NextResponse.json({
       status: 'success',
       session_id: sessionId,
       ingredients: insertedIngredients.map(i => ({ 
@@ -102,6 +113,12 @@ export async function POST(request: NextRequest) {
         condition: i.condition || 'whole'
       }))
     }, { status: 200 });
+
+    if (!user && guestId) {
+      response.cookies.set('guest_id', guestId, { path: '/', httpOnly: true, maxAge: 60 * 60 * 24 * 30 });
+    }
+
+    return response;
 
   } catch (error: any) {
     console.error('❌ Terjadi error di /api/detect:', error);

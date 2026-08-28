@@ -70,29 +70,24 @@ export default function CompostSessionPage() {
     const newQty = currentQty + delta;
     if (newQty < 1) return;
 
-    // 1. Update UI langsung (tanpa tunggu server)
     setIngredients(prev => prev.map(ingr => ingr.id === id ? { ...ingr, quantity: newQty } : ingr));
 
     try {
-      // 2. Kirim ke server di background
       await fetch(`/api/ingredients/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantity: newQty })
       });
     } catch (err) {
-      // 3. Revert jika gagal
       alert("Gagal update jumlah.");
-      fetchSessionData(); // Reload data asli dari DB
+      fetchSessionData();
     }
   };
 
   const handleUpdateCondition = async (id: string, newCondition: 'whole' | 'peel' | 'rotten') => {
-    // 1. OPTIMISTIC UPDATE: Update local state IMMEDIATELY
     setIngredients(prev => prev.map(ingr => ingr.id === id ? { ...ingr, condition: newCondition } : ingr));
 
     try {
-      // 2. Sync to DB in background
       const res = await fetch(`/api/ingredients/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -105,7 +100,7 @@ export default function CompostSessionPage() {
     } catch (err) {
       console.error("Gagal memperbarui kondisi bahan:", err);
       alert("Gagal memperbarui kondisi bahan.");
-      fetchSessionData(); // Revert ke DB
+      fetchSessionData();
     }
   };
 
@@ -237,8 +232,6 @@ export default function CompostSessionPage() {
         condition: ingr.condition || 'whole'
       })) || [];
 
-      console.log('Sending ingredients to bot:', safeIngredients);
-
       const res = await fetch('/api/chat', {
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
@@ -317,9 +310,7 @@ export default function CompostSessionPage() {
         {/* MAIN TWO-COLUMN CONTENT AREA */}
         <div className="p-4 sm:p-6 lg:p-8 grid lg:grid-cols-12 gap-8">
           
-          {/* ========================================== */}
-          {/* KOLOM KIRI: DAFTAR BAHAN & PROMINENT CTA   */}
-          {/* ========================================== */}
+          {/* KOLOM KIRI: DAFTAR BAHAN & PROMINENT CTA */}
           <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
             <div>
               <div className="flex justify-between items-center mb-4">
@@ -360,7 +351,6 @@ export default function CompostSessionPage() {
                         </div>
                         
                         <div className="flex items-center space-x-2">
-                          {/* QUANTITY CONTROLS */}
                           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
                             <button 
                               onClick={() => handleUpdateQuantity(ingr.id, ingr.quantity, -1)} 
@@ -377,7 +367,6 @@ export default function CompostSessionPage() {
                             </button>
                           </div>
 
-                          {/* DELETE BUTTON */}
                           <button 
                             onClick={() => handleDeleteIngredient(ingr.id, ingr.name)} 
                             className="w-8 h-8 rounded-xl bg-slate-100 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center justify-center text-sm" 
@@ -388,7 +377,6 @@ export default function CompostSessionPage() {
                         </div>
                       </div>
 
-                      {/* CONDITION SELECTOR */}
                       <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
                         <span className="text-slate-500 font-medium">Kondisi Bahan:</span>
                         <select
@@ -439,12 +427,9 @@ export default function CompostSessionPage() {
             </div>
           </div>
 
-          {/* ========================================== */}
-          {/* KOLOM KANAN: COMPOSTBOT CHAT (MESSAGING UI) */}
-          {/* ========================================== */}
+          {/* KOLOM KANAN: COMPOSTBOT CHAT */}
           <div className="lg:col-span-5 flex flex-col h-[520px] border border-slate-200/80 rounded-3xl bg-slate-50/70 overflow-hidden shadow-inner">
             
-            {/* MESSENGER HEADER */}
             <div className="bg-white p-4 border-b border-slate-200/80 font-bold text-slate-800 flex items-center justify-between shadow-2xs">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg">
@@ -459,7 +444,6 @@ export default function CompostSessionPage() {
               </div>
             </div>
             
-            {/* MESSAGES LIST */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
               {chatMessages.length === 0 && (
                 <div className="text-center text-slate-400 text-xs mt-12 flex flex-col items-center px-4 space-y-2">
@@ -499,7 +483,6 @@ export default function CompostSessionPage() {
               )}
             </div>
 
-            {/* CHAT INPUT FORM */}
             <form onSubmit={handleSendChat} className="p-3 bg-white border-t border-slate-200/80 flex gap-2">
               <input 
                 type="text" 
@@ -521,14 +504,11 @@ export default function CompostSessionPage() {
         </div>
       </div>
 
-      {/* ========================================== */}
-      {/* MINI SCANNER MODAL (POP-UP TAMBAH BAHAN)   */}
-      {/* ========================================== */}
+      {/* MINI SCANNER MODAL */}
       {showScannerModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-emerald-100 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             
-            {/* Modal Header */}
             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                 <span>📷</span> Tambah Bahan Baru
@@ -541,7 +521,6 @@ export default function CompostSessionPage() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="p-4 flex-1 overflow-y-auto space-y-4">
               <div className="relative w-full aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-800">
                 {scanImagePreview ? (
@@ -557,7 +536,6 @@ export default function CompostSessionPage() {
                 <canvas ref={canvasRef} className="hidden" />
               </div>
 
-              {/* Controls */}
               <div className="space-y-3">
                 {scanImagePreview ? (
                   <div className="flex gap-2">

@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/server';
 import { YoloResponse } from '@/lib/types';
+import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const cookieStore = await cookies();
+    const guestId = cookieStore.get('guest_id')?.value;
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const sessionId = formData.get('session_id') as string | null;
@@ -13,19 +19,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File gambar dan session_id wajib diisi.' }, { status: 400 });
     }
 
+    // Authorization check for the session
+    let query = supabase.from('sessions').select('id').eq('id', sessionId);
+    if (user) {
+      query = query.eq('user_id', user.id);
+    } else if (guestId) {
+      query = query.eq('guest_identifier', guestId);
+    } else {
+      return NextResponse.json({ error: 'Tidak memiliki akses ke sesi ini.' }, { status: 403 });
+    }
+
+    const { data: sessionData, error: sessionError } = await query.single();
+    if (sessionError || !sessionData) {
+      return NextResponse.json({ error: 'Sesi tidak ditemukan atau akses ditolak.' }, { status: 404 });
+    }
+
     // 1. Kirim ke Python YOLO
     const pythonFormData = new FormData();
     pythonFormData.append('file', file, file.name);
 
     console.log(`🚀 [Add Ingredient] Mengirim gambar ke YOLO untuk session ${sessionId}...`);
     const pythonResponse = await axios.post<YoloResponse>(
-      `${process.env.PYTHON_AI_URL}/detect`, 
+      `${process.env.PYTHON_AI_URL || 'http://127.0.0.1:8000'}/detect`, 
       pythonFormData, 
       { headers: { 'Content-Type': 'multipart/form-data' }, maxBodyLength: Infinity }
     );
 
     const yoloData = pythonResponse.data;
-    if (yoloData.detections.length === 0) {
+    if (!yoloData.detections || yoloData.detections.length === 0) {
       return NextResponse.json({ message: 'Tidak ada objek terdeteksi.', detections: [] }, { status: 200 });
     }
 
@@ -38,13 +59,10 @@ export async function POST(request: NextRequest) {
       aggregatedMap.set(item.name, current);
     }
 
-    // 3. LOGIKA PINTAR: Cek apakah bahan sudah ada di DB untuk session ini
-    // Jika sudah ada (misal: apel sudah ada 2, sekarang nambah 1), maka UPDATE quantity-nya (+1).
-    // Jika belum ada, INSERT baris baru.
+    // 3. Upsert / Insert
     const newlyAdded = [];
 
     for (const [name, data] of Array.from(aggregatedMap.entries())) {
-      // Cari apakah bahan ini sudah ada di sesi ini
       const { data: existingIngredient } = await supabase
         .from('ingredients')
         .select('id, quantity')
@@ -53,7 +71,6 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (existingIngredient) {
-        // UPDATE: Tambahkan quantity baru ke quantity lama
         await supabase
           .from('ingredients')
           .update({ quantity: existingIngredient.quantity + data.quantity })
@@ -61,13 +78,13 @@ export async function POST(request: NextRequest) {
         
         newlyAdded.push({ name, action: 'updated', new_quantity: existingIngredient.quantity + data.quantity });
       } else {
-        // INSERT: Bahan baru sama sekali
         await supabase
           .from('ingredients')
           .insert({
             session_id: sessionId,
             name: name,
             quantity: data.quantity,
+            condition: 'whole',
             confidence_score: data.max_confidence
           });
         

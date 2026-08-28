@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/server';
 import { chatWithCompostBot } from '@/lib/gemini';
+import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const cookieStore = await cookies();
+    const guestId = cookieStore.get('guest_id')?.value;
+
     const body = await request.json();
     const { session_id, step_id, message } = body;
 
@@ -11,15 +17,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'session_id dan message wajib diisi.' }, { status: 400 });
     }
 
-    // 1. Ambil konteks bahan FRESH dari database (TERMASUK KOLOM CONDITION!)
+    // Verify Session Ownership
+    let sessionQuery = supabase.from('sessions').select('id').eq('id', session_id);
+    if (user) {
+      sessionQuery = sessionQuery.eq('user_id', user.id);
+    } else if (guestId) {
+      sessionQuery = sessionQuery.eq('guest_identifier', guestId);
+    } else {
+      return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
+    }
+
+    const { data: sessionCheck, error: sessionError } = await sessionQuery.single();
+    if (sessionError || !sessionCheck) {
+      return NextResponse.json({ error: 'Sesi tidak ditemukan atau akses ditolak.' }, { status: 404 });
+    }
+
+    // 1. Ambil konteks bahan FRESH dari database
     const { data: ingredients, error: ingError } = await supabase
       .from('ingredients')
-      .select('name, quantity, condition') // ✅ Tambahkan 'condition' di sini
+      .select('name, quantity, condition')
       .eq('session_id', session_id);
 
     if (ingError) throw new Error(`Gagal ambil bahan: ${ingError.message}`);
 
-    // 2. Ambil konteks step (jika user chat dari halaman step spesifik)
+    // 2. Ambil konteks step
     let currentStepContext = null;
     if (step_id) {
       const { data: stepData } = await supabase
@@ -30,7 +51,7 @@ export async function POST(request: NextRequest) {
       currentStepContext = stepData;
     }
 
-    // 3. Simpan pesan USER ke riwayat chat dulu
+    // 3. Simpan pesan USER
     await supabase.from('chat_history').insert({
       session_id,
       step_id: step_id || null,
@@ -39,12 +60,11 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`💬 CompostBot memproses: "${message}"...`);
-    console.log(`📦 Data bahan real-time dari DB:`, ingredients); // Debug log
 
-    // 4. PANGGIL GEMINI CHAT DENGAN DATA LENGKAP! 🔥
+    // 4. Panggil Gemini Chat
     const botReply = await chatWithCompostBot(message, ingredients || [], currentStepContext);
 
-    // 5. Simpan balasan BOT ke riwayat chat
+    // 5. Simpan balasan BOT
     await supabase.from('chat_history').insert({
       session_id,
       step_id: step_id || null,
