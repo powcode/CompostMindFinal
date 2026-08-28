@@ -14,7 +14,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (message?.type === 'success') {
       const timer = setTimeout(() => {
-        router.push('/dashboard')
+        router.push('/')
       }, 3000)
 
       return () => clearTimeout(timer) // Cleanup timer jika komponen unmount
