@@ -1,4 +1,3 @@
-// app/api/sessions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
@@ -6,7 +5,6 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     
-    // 1. Wajib Auth: Tolak jika tidak ada user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
@@ -16,18 +14,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Validasi Input
-    const body = await request.json();
-    const { ingredients } = body;
-
-    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+    const body = await request.json().catch(() => null);
+    if (!body || !body.ingredients || !Array.isArray(body.ingredients) || body.ingredients.length === 0) {
       return NextResponse.json(
         { error: 'List bahan (ingredients) wajib diisi dan harus berupa array.' }, 
         { status: 400 }
       );
     }
 
-    // 3. Insert Session (User ID Wajib Ada)
+    const { ingredients } = body;
+
     const { data: newSession, error: sessionError } = await supabase
       .from('sessions')
       .insert({ 
@@ -39,12 +35,14 @@ export async function POST(request: NextRequest) {
 
     if (sessionError || !newSession) {
       console.error('Session Insert Error:', sessionError);
-      throw new Error(`Gagal membuat sesi: ${sessionError?.message}`);
+      return NextResponse.json(
+        { error: `Gagal membuat sesi: ${sessionError?.message || 'Unknown error'}` },
+        { status: 500 }
+      );
     }
 
     const sessionId = newSession.id;
 
-    // 4. Insert Ingredients
     const ingredientsToInsert = ingredients.map((ingr: any) => ({
       session_id: sessionId,
       name: ingr.name,
@@ -59,7 +57,10 @@ export async function POST(request: NextRequest) {
 
     if (ingredientsError) {
       console.error('Ingredients Insert Error:', ingredientsError);
-      throw new Error(`Gagal menyimpan bahan: ${ingredientsError.message}`);
+      return NextResponse.json(
+        { error: `Gagal menyimpan bahan: ${ingredientsError.message}` },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -69,21 +70,20 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error(' Error di /api/sessions POST:', error);
+    console.error('Error di /api/sessions POST:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' }, 
+      { error: error?.message || 'Internal Server Error' }, 
       { status: 500 }
     );
   }
 }
 
-// GET Handler: Tetap filter by user_id sebagai defense in depth
 export async function GET() {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized. Login required.' }, 
         { status: 401 }
@@ -92,17 +92,23 @@ export async function GET() {
 
     const { data: sessions, error } = await supabase
       .from('sessions')
-      .select('*')
+      .select('id, status, created_at, user_id, ingredients(name, quantity)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Session Query Error:', error);
+      return NextResponse.json(
+        { error: `Gagal mengambil riwayat sesi: ${error.message}` },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json(sessions);
+    return NextResponse.json({ data: sessions }, { status: 200 });
   } catch (error: any) {
-    console.error('❌ Error di /api/sessions GET:', error);
+    console.error('Error di /api/sessions GET:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' }, 
+      { error: error?.message || 'Internal Server Error' }, 
       { status: 500 }
     );
   }

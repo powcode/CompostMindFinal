@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -9,8 +8,7 @@ interface SessionData {
   id: string;
   status: string;
   created_at: string;
-  user_id?: string | null;
-  guest_identifier?: string | null;
+  user_id: string;
   ingredients: { name: string; quantity: number }[];
 }
 
@@ -18,43 +16,37 @@ export default function CompostDashboardPage() {
   const router = useRouter();
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchSessions() {
       setLoading(true);
+      setErrorMsg(null);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const res = await fetch('/api/sessions', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
 
-        let query = supabase.from('sessions').select('id, status, created_at, user_id, guest_identifier').order('created_at', { ascending: false });
-
-        if (user) {
-          query = query.eq('user_id', user.id);
+        if (res.status === 401) {
+          window.location.href = '/login?redirectedFrom=/composting';
+          return;
         }
 
-        const { data: sessionsData, error } = await query;
+        const data = await res.json().catch(() => null);
 
-        if (error) throw error;
-
-        if (sessionsData && sessionsData.length > 0) {
-          const sessionsWithIngredients = await Promise.all(
-            sessionsData.map(async (session) => {
-              const { data: ingrData } = await supabase
-                .from('ingredients')
-                .select('name, quantity')
-                .eq('session_id', session.id);
-              
-              return {
-                ...session,
-                ingredients: ingrData || []
-              };
-            })
-          );
-          setSessions(sessionsWithIngredients);
-        } else {
-          setSessions([]);
+        if (!res.ok) {
+          const errorMessage = data?.error || `Gagal mengambil riwayat sesi (${res.status})`;
+          throw new Error(errorMessage);
         }
-      } catch (error) {
-        console.error("Gagal mengambil riwayat sesi:", error);
+
+        setSessions(data?.data || []);
+      } catch (error: any) {
+        console.error("Gagal mengambil riwayat sesi:", error?.message || error);
+        setErrorMsg(error?.message || 'Terjadi kesalahan saat memuat data sesi.');
       } finally {
         setLoading(false);
       }
@@ -106,6 +98,12 @@ export default function CompostDashboardPage() {
 
         {loading ? (
           <div className="text-center py-20 text-gray-500">Memuat riwayat sesi...</div>
+        ) : errorMsg ? (
+          <div className="text-center py-12 bg-white rounded-2xl border border-red-200 shadow-sm p-6">
+            <div className="text-4xl mb-3">⚠️</div>
+            <h2 className="text-lg font-bold text-red-700 mb-2">Gagal Memuat Sesi</h2>
+            <p className="text-sm text-gray-600">{errorMsg}</p>
+          </div>
         ) : sessions.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-200 shadow-sm">
             <div className="text-6xl mb-4">🍃</div>
@@ -131,7 +129,7 @@ export default function CompostDashboardPage() {
 
                 <div className="p-5 flex-1">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Bahan Terdeteksi:</p>
-                  {session.ingredients.length > 0 ? (
+                  {session.ingredients && session.ingredients.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {session.ingredients.map((ingr, idx) => (
                         <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-green-50 text-green-700 border border-green-100 capitalize">
