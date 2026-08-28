@@ -2,33 +2,10 @@
 
 import { signUp } from '@/app/actions/auth'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useActionState } from 'react'
 
 export default function RegisterPage() {
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  async function handleSubmit(formData: FormData) {
-    setMessage(null)
-    setIsSubmitting(true)
-
-    try {
-      const result = await signUp(formData)
-
-      if (result?.error) {
-        setMessage({ type: 'error', text: result.error })
-      } else {
-        setMessage({ 
-          type: 'success', 
-          text: 'Pendaftaran berhasil! Silakan periksa email Anda untuk verifikasi akun.' 
-        })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Terjadi kesalahan saat pendaftaran. Silakan coba lagi.' })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  const [state, formAction, isPending] = useActionState(signUp, null)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 via-slate-50 to-white text-slate-800 flex flex-col justify-center items-center p-4 font-sans">
@@ -48,20 +25,22 @@ export default function RegisterPage() {
         </div>
 
         {/* ALERT MESSAGES */}
-        {message && (
+        {state && (
           <div
             className={`p-4 rounded-2xl text-xs sm:text-sm font-medium mb-5 border ${
-              message.type === 'success'
+              state.success
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                 : 'bg-rose-50 border-rose-200 text-rose-800'
             }`}
           >
-            {message.text}
+            {state.success
+              ? 'Pendaftaran berhasil! Silakan periksa email Anda untuk verifikasi akun.'
+              : state.error || 'Terjadi kesalahan saat pendaftaran. Silakan coba lagi.'}
           </div>
         )}
 
         {/* REGISTER FORM */}
-        <form action={handleSubmit} className="space-y-4">
+        <form action={formAction} className="space-y-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 block pl-1">
               Email
@@ -91,10 +70,10 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting || message?.type === 'success'}
+            disabled={isPending || state?.success}
             className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-600/30 transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
           >
-            {isSubmitting ? (
+            {isPending ? (
               <>
                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

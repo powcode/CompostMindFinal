@@ -3,42 +3,22 @@
 import { signIn } from '@/app/actions/auth'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useEffect, useActionState } from 'react'
 
 export default function LoginPage() {
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [state, formAction, isPending] = useActionState(signIn, null)
   const router = useRouter()
 
   // Effect untuk redirect otomatis setelah 3 detik jika sukses
   useEffect(() => {
-    if (message?.type === 'success') {
+    if (state?.success) {
       const timer = setTimeout(() => {
         router.push('/')
       }, 3000)
 
       return () => clearTimeout(timer) // Cleanup timer jika komponen unmount
     }
-  }, [message, router])
-
-  async function handleSubmit(formData: FormData) {
-    setMessage(null)
-    setIsSubmitting(true)
-
-    try {
-      const result = await signIn(formData)
-
-      if (result.success) {
-        setMessage({ type: 'success', text: 'Berhasil login! Mengalihkan ke dashboard...' })
-      } else {
-        setMessage({ type: 'error', text: result.error || 'Login gagal.' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Terjadi kesalahan sistem. Silakan coba lagi.' })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  }, [state, router])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 via-slate-50 to-white text-slate-800 flex flex-col justify-center items-center p-4 font-sans">
@@ -58,20 +38,22 @@ export default function LoginPage() {
         </div>
 
         {/* ALERT MESSAGES */}
-        {message && (
+        {state && (
           <div
             className={`p-4 rounded-2xl text-xs sm:text-sm font-medium mb-5 border ${
-              message.type === 'success'
+              state.success
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                 : 'bg-rose-50 border-rose-200 text-rose-800'
             }`}
           >
-            {message.text}
+            {state.success
+              ? 'Berhasil login! Mengalihkan ke dashboard...'
+              : state.error || 'Login gagal.'}
           </div>
         )}
 
         {/* LOGIN FORM */}
-        <form action={handleSubmit} className="space-y-4">
+        <form action={formAction} className="space-y-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 block pl-1">
               Email
@@ -100,10 +82,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting || message?.type === 'success'}
+            disabled={isPending || state?.success}
             className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-600/30 transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
           >
-            {isSubmitting ? (
+            {isPending ? (
               <>
                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
