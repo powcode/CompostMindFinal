@@ -8,15 +8,15 @@ export default function RegisterPage() {
   const [state, formAction, isPending] = useActionState(signUp, null)
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 via-slate-50 to-white text-slate-800 flex flex-col justify-center items-center px-4 py-6 font-sans">
-      <div className="w-full max-w-md bg-white rounded-3xl p-5 sm:p-8 shadow-xl shadow-slate-200/60 border border-emerald-100/80 transition-all">
+    <div className="flex-1 w-full bg-gradient-to-b from-emerald-50/50 via-slate-50 to-white text-slate-800 flex flex-col justify-center items-center px-4 py-8 safe-bottom font-sans">
+      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/60 border border-emerald-100/80 transition-all">
         
         {/* HEADER ICON & TITLE */}
-        <div className="text-center mb-5 sm:mb-6 space-y-2">
+        <div className="text-center mb-6 space-y-2">
           <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold">
             🌱
           </div>
-          <h1 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Buat Akun Baru
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
@@ -27,7 +27,7 @@ export default function RegisterPage() {
         {/* ALERT MESSAGES */}
         {state && (
           <div
-            className={`p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm font-medium mb-4 sm:mb-5 border ${
+            className={`p-4 rounded-2xl text-xs sm:text-sm font-medium mb-5 border ${
               state.success
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                 : 'bg-rose-50 border-rose-200 text-rose-800'
@@ -50,7 +50,7 @@ export default function RegisterPage() {
               type="email"
               placeholder="nama@email.com"
               required
-              className="w-full h-[48px] px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white text-slate-800 placeholder:text-slate-400 transition-all"
+              className="w-full min-h-[48px] px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white text-slate-800 placeholder:text-slate-400 transition-all"
             />
           </div>
 
@@ -64,14 +64,14 @@ export default function RegisterPage() {
               placeholder="Minimal 6 karakter"
               required
               minLength={6}
-              className="w-full h-[48px] px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white text-slate-800 placeholder:text-slate-400 transition-all"
+              className="w-full min-h-[48px] px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white text-slate-800 placeholder:text-slate-400 transition-all"
             />
           </div>
 
           <button
             type="submit"
             disabled={isPending || state?.success}
-            className="w-full min-h-[48px] py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-600/30 transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+            className="w-full min-h-[48px] py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-600/30 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
           >
             {isPending ? (
               <>

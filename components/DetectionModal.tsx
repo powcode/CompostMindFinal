@@ -33,7 +33,7 @@ export default function DetectionModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-xs p-0 sm:p-4">
       <div 
-        className="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 flex flex-col max-h-[85vh] sm:max-h-[90vh] overflow-hidden animate-in slide-in-from-bottom duration-200"
+        className="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 flex flex-col max-h-[85vh] sm:max-h-[90vh] overflow-hidden animate-in slide-in-from-bottom duration-200 safe-bottom"
       >
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
@@ -51,7 +51,7 @@ export default function DetectionModal({
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
+        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
           {imagePreview && (
             <div className="relative aspect-[4/3] w-full max-h-48 sm:max-h-56 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200/80">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -120,7 +120,7 @@ export default function DetectionModal({
           <button
             onClick={onConfirm}
             disabled={isLoading || ingredients.length === 0}
-            className="w-full sm:w-2/3 min-h-[44px] py-3 px-4 rounded-2xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-lg shadow-emerald-600/20"
+            className="w-full sm:w-2/3 min-h-[44px] py-3 px-4 rounded-2xl font-bold text-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-lg shadow-emerald-600/20 active:scale-[0.98]"
           >
             {isLoading ? 'Memproses...' : 'Mulai Pengomposan →'}
           </button>
