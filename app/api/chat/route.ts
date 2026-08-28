@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { chatWithCompostBot } from '@/lib/gemini';
-import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const cookieStore = await cookies();
-    const guestId = cookieStore.get('guest_id')?.value;
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Akses ditolak. Silakan login terlebih dahulu.' }, { status: 401 });
+    }
 
     const body = await request.json();
     const { session_id, step_id, message } = body;
@@ -18,16 +19,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify Session Ownership
-    let sessionQuery = supabase.from('sessions').select('id').eq('id', session_id);
-    if (user) {
-      sessionQuery = sessionQuery.eq('user_id', user.id);
-    } else if (guestId) {
-      sessionQuery = sessionQuery.eq('guest_identifier', guestId);
-    } else {
-      return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 });
-    }
+    const { data: sessionCheck, error: sessionError } = await supabase
+      .from('sessions')
+      .select('id')
+      .eq('id', session_id)
+      .eq('user_id', user.id)
+      .single();
 
-    const { data: sessionCheck, error: sessionError } = await sessionQuery.single();
     if (sessionError || !sessionCheck) {
       return NextResponse.json({ error: 'Sesi tidak ditemukan atau akses ditolak.' }, { status: 404 });
     }

@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { createClient } from '@/utils/supabase/server';
 import { YoloResponse } from '@/lib/types';
-import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const cookieStore = await cookies();
-    const guestId = cookieStore.get('guest_id')?.value;
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Akses ditolak. Silakan login terlebih dahulu.' }, { status: 401 });
+    }
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -20,16 +21,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Authorization check for the session
-    let query = supabase.from('sessions').select('id').eq('id', sessionId);
-    if (user) {
-      query = query.eq('user_id', user.id);
-    } else if (guestId) {
-      query = query.eq('guest_identifier', guestId);
-    } else {
-      return NextResponse.json({ error: 'Tidak memiliki akses ke sesi ini.' }, { status: 403 });
-    }
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('sessions')
+      .select('id')
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .single();
 
-    const { data: sessionData, error: sessionError } = await query.single();
     if (sessionError || !sessionData) {
       return NextResponse.json({ error: 'Sesi tidak ditemukan atau akses ditolak.' }, { status: 404 });
     }

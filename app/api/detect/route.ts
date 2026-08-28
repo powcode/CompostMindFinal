@@ -2,18 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { createClient } from '@/utils/supabase/server';
 import { YoloResponse, DbIngredient } from '@/lib/types';
-import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Check Authenticated User or Guest Cookie
+    // 1. Check Authenticated User
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    const cookieStore = await cookies();
-    let guestId = cookieStore.get('guest_id')?.value;
-    if (!user && !guestId) {
-      guestId = `guest_${crypto.randomUUID()}`;
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please login to start composting.' },
+        { status: 401 }
+      );
     }
 
     // 2. Terima FormData (berisi gambar) dari request
@@ -67,9 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Simpan ke Supabase (Fase Pre-Composting)
-    const sessionPayload = user 
-      ? { status: 'pre_composting', user_id: user.id, guest_identifier: null }
-      : { status: 'pre_composting', user_id: null, guest_identifier: guestId };
+    const sessionPayload = { status: 'pre_composting', user_id: user.id };
 
     const { data: newSession, error: sessionError } = await supabase
       .from('sessions')
@@ -103,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`💾 Berhasil simpan session ${sessionId} dengan ${insertedIngredients.length} jenis bahan.`);
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       status: 'success',
       session_id: sessionId,
       ingredients: insertedIngredients.map(i => ({ 
@@ -113,12 +111,6 @@ export async function POST(request: NextRequest) {
         condition: i.condition || 'whole'
       }))
     }, { status: 200 });
-
-    if (!user && guestId) {
-      response.cookies.set('guest_id', guestId, { path: '/', httpOnly: true, maxAge: 60 * 60 * 24 * 30 });
-    }
-
-    return response;
 
   } catch (error: any) {
     console.error('❌ Terjadi error di /api/detect:', error);

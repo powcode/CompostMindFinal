@@ -13,8 +13,7 @@ export interface YoloResponse {
 // Bentuk data Sesi di Supabase
 export interface DbSession {
   id: string;
-  user_id: string | null;
-  guest_identifier: string | null;
+  user_id: string;
   status: string;
   created_at?: string;
 }
