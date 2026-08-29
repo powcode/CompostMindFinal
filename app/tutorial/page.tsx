@@ -29,8 +29,11 @@ export default async function TutorialPage() {
               key={step.stepNumber}
               className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-xs transition-all hover:shadow-md"
             >
-              {/* IMAGE */}
-              <div className="relative w-full h-48 sm:h-64 rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 mb-4">
+              {/* IMAGE CONTAINER WITH EXPLICIT MIN-HEIGHT */}
+              <div 
+                className="relative w-full h-48 sm:h-64 rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 mb-4 block"
+                style={{ minHeight: '192px' }}
+              >
                 <Image
                   src={step.image}
                   alt={step.title}
