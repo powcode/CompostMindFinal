@@ -23,8 +23,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="h-full overscroll-none">
-      <body className={`${inter.className} min-h-full flex flex-col bg-slate-50 text-slate-900 antialiased overscroll-none`}>
+    <html lang="id" className="h-full">
+      <body className={`${inter.className} min-h-full flex flex-col bg-slate-50 text-slate-900 antialiased`}>
         <Navbar />
         <main className="flex-1 w-full flex flex-col">
           {children}

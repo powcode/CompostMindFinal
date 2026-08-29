@@ -45,14 +45,14 @@ export default function MobileMenu({ isOpen, onClose, isAuthenticated }: MobileM
     >
       {/* BACKDROP OVERLAY */}
       <div 
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" 
+        className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs transition-opacity" 
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* PANEL SLIDE-IN */}
       <div
-        className={`absolute inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`absolute inset-y-0 right-0 w-full max-w-xs bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -88,26 +88,26 @@ export default function MobileMenu({ isOpen, onClose, isAuthenticated }: MobileM
           <Link
             href="/"
             onClick={onClose}
-            className={`flex items-center gap-4 py-4 px-4 rounded-xl text-base font-semibold min-h-[56px] transition-colors border-b border-slate-100/80 ${
+            className={`flex items-center gap-3.5 py-3.5 px-4 rounded-xl text-sm font-semibold min-h-[52px] transition-colors border-b border-slate-100/70 ${
               pathname === '/'
-                ? 'bg-emerald-50 text-emerald-700'
+                ? 'bg-emerald-50 text-emerald-700 font-bold'
                 : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            <span className="text-xl w-6 h-6 flex items-center justify-center shrink-0">📷</span>
+            <span className="text-lg w-6 h-6 flex items-center justify-center shrink-0">📷</span>
             <span>Scan Baru</span>
           </Link>
 
           <Link
             href="/composting"
             onClick={onClose}
-            className={`flex items-center gap-4 py-4 px-4 rounded-xl text-base font-semibold min-h-[56px] transition-colors border-b border-slate-100/80 ${
+            className={`flex items-center gap-3.5 py-3.5 px-4 rounded-xl text-sm font-semibold min-h-[52px] transition-colors border-b border-slate-100/70 ${
               pathname?.startsWith('/composting')
-                ? 'bg-emerald-50 text-emerald-700'
+                ? 'bg-emerald-50 text-emerald-700 font-bold'
                 : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
             }`}
           >
-            <span className="text-xl w-6 h-6 flex items-center justify-center shrink-0">📋</span>
+            <span className="text-lg w-6 h-6 flex items-center justify-center shrink-0">📋</span>
             <span>Riwayat Sesi</span>
           </Link>
 
@@ -115,13 +115,13 @@ export default function MobileMenu({ isOpen, onClose, isAuthenticated }: MobileM
             <Link
               href="/tutorial"
               onClick={onClose}
-              className={`flex items-center gap-4 py-4 px-4 rounded-xl text-base font-semibold min-h-[56px] transition-colors ${
+              className={`flex items-center gap-3.5 py-3.5 px-4 rounded-xl text-sm font-semibold min-h-[52px] transition-colors ${
                 pathname === '/tutorial'
-                  ? 'bg-emerald-50 text-emerald-700'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold'
                   : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
-              <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center shrink-0 border border-emerald-300">
+              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black flex items-center justify-center shrink-0 border border-emerald-300">
                 ?
               </span>
               <span>Tutorial</span>
@@ -130,24 +130,24 @@ export default function MobileMenu({ isOpen, onClose, isAuthenticated }: MobileM
             <Link
               href="/login"
               onClick={onClose}
-              className={`flex items-center gap-4 py-4 px-4 rounded-xl text-base font-semibold min-h-[56px] transition-colors ${
+              className={`flex items-center gap-3.5 py-3.5 px-4 rounded-xl text-sm font-semibold min-h-[52px] transition-colors ${
                 pathname === '/login'
-                  ? 'bg-emerald-50 text-emerald-700'
+                  ? 'bg-emerald-50 text-emerald-700 font-bold'
                   : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
-              <span className="text-xl w-6 h-6 flex items-center justify-center shrink-0">🔑</span>
+              <span className="text-lg w-6 h-6 flex items-center justify-center shrink-0">🔑</span>
               <span>Masuk / Daftar</span>
             </Link>
           )}
         </div>
 
-        {/* BOTTOM CONTAINER (WITH SAFE AREA PADDING FOR IPHONE HOME INDICATOR) */}
-        <div className="p-4 pt-3 border-t border-slate-100 bg-slate-50/60 pb-[max(1.5rem,env(safe-area-inset-bottom))] mt-auto">
+        {/* BOTTOM CONTAINER */}
+        <div className="p-4 pt-3 border-t border-slate-100 bg-slate-50/60 safe-bottom mt-auto">
           <Link
             href={isAuthenticated ? '/composting' : '/login'}
             onClick={onClose}
-            className="w-full py-3.5 px-6 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base rounded-2xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 text-center transition-all"
+            className="w-full py-3.5 px-5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-extrabold text-sm rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 text-center transition-all"
           >
             <span>Mulai Composting</span>
             <span>→</span>

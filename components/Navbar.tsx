@@ -36,7 +36,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-emerald-100/60 shadow-xs transition-all">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/70 shadow-xs transition-all">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             
@@ -102,7 +102,7 @@ export default function Navbar() {
             <button
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Buka menu navigasi"
-              className="md:hidden w-12 h-12 flex items-center justify-center rounded-2xl text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 active:bg-emerald-100 transition-colors"
+              className="md:hidden w-11 h-11 flex items-center justify-center rounded-2xl text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 active:bg-emerald-100 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />

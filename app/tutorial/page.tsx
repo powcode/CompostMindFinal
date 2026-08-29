@@ -9,8 +9,8 @@ export default async function TutorialPage() {
   const isAuthenticated = !!user
 
   return (
-    <div className="flex-1 w-full bg-slate-50 text-slate-800 py-8 px-4 sm:px-6 safe-bottom">
-      <div className="max-w-3xl mx-auto space-y-8">
+    <div className="flex-1 w-full bg-slate-50 text-slate-800 py-6 sm:py-8 px-4 sm:px-6">
+      <div className="max-w-3xl mx-auto space-y-6 sm:space-y-8 pb-20 sm:pb-8">
         
         {/* HEADER */}
         <div>
@@ -27,13 +27,10 @@ export default async function TutorialPage() {
           {TUTORIAL_STEPS.map((step) => (
             <div
               key={step.stepNumber}
-              className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-xs transition-all hover:shadow-md"
+              className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-xs transition-all hover:shadow-md flex flex-col gap-4"
             >
-              {/* IMAGE CONTAINER WITH EXPLICIT MIN-HEIGHT */}
-              <div 
-                className="relative w-full h-48 sm:h-64 rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 mb-4 block"
-                style={{ minHeight: '720px' }}
-              >
+              {/* IMAGE CONTAINER */}
+              <div className="relative w-full h-48 sm:h-64 rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 shrink-0">
                 <Image
                   src={step.image}
                   alt={step.title}
@@ -46,14 +43,14 @@ export default async function TutorialPage() {
 
               {/* DETAILS */}
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm mt-0.5">
                   {step.stepNumber}
                 </div>
-                <div className="space-y-1 pt-0.5">
-                  <h2 className="text-lg font-bold text-slate-900">
+                <div className="space-y-1">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
                     {step.title}
                   </h2>
-                  <p className="text-sm text-slate-600 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                     {step.desc}
                   </p>
                 </div>
@@ -62,14 +59,16 @@ export default async function TutorialPage() {
           ))}
         </div>
 
-        {/* CTA BUTTON */}
-        <div className="pt-4 sticky bottom-4 sm:relative sm:bottom-0">
-          <Link
-            href={isAuthenticated ? '/composting' : '/login'}
-            className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-lg shadow-emerald-600/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-center"
-          >
-            <span>Mulai Composting Sekarang →</span>
-          </Link>
+        {/* STICKY CTA BUTTON FOR MOBILE */}
+        <div className="sticky bottom-4 sm:relative sm:bottom-0 z-30 pt-2">
+          <div className="bg-slate-50/80 backdrop-blur-md p-2 rounded-2xl sm:bg-transparent sm:p-0">
+            <Link
+              href={isAuthenticated ? '/composting' : '/login'}
+              className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 text-center"
+            >
+              <span>Mulai Composting Sekarang →</span>
+            </Link>
+          </div>
         </div>
 
       </div>
