@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -12,9 +12,16 @@ interface MobileMenuProps {
 
 export default function MobileMenu({ isOpen, onClose, isAuthenticated }: MobileMenuProps) {
   const pathname = usePathname();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Prevent background scrolling on both html and body when mobile menu is open
   useEffect(() => {
+    if (!isMounted) return;
+
     if (isOpen) {
       document.documentElement.classList.add('overflow-hidden');
       document.body.classList.add('overflow-hidden');
@@ -27,7 +34,7 @@ export default function MobileMenu({ isOpen, onClose, isAuthenticated }: MobileM
       document.documentElement.classList.remove('overflow-hidden');
       document.body.classList.remove('overflow-hidden');
     };
-  }, [isOpen]);
+  }, [isOpen, isMounted]);
 
   // Close menu when route changes
   useEffect(() => {
