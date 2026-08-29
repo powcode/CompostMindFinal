@@ -1,53 +1,12 @@
-'use client'
-
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/server'
+import { TUTORIAL_STEPS } from '@/data/tutorial-steps'
 
-// data/tutorial-steps.ts
-export interface TutorialStep {
-  stepNumber: number;
-  title: string;
-  desc: string;
-  image: string;
-}
-
-export const TUTORIAL_STEPS: TutorialStep[] = [
-  {
-    stepNumber: 1,
-    title: 'Deteksi Bahan Makanan dalam Kondisi Utuh',
-    desc: 'Arahkan kamera ke sisa makanan. AI akan mengenali jenis dan kondisi bahan secara otomatis.',
-    image: '/tutorial/step-1-detect.jpg',
-  },
-  {
-    stepNumber: 2,
-    title: 'Atur Kondisi Bahan',
-    desc: 'Tandai apakah bahan masih utuh, kulit, atau busuk. Ini menentukan langkah composting yang tepat.',
-    image: '/tutorial/step-2-condition.jpg',
-  },
-  {
-    stepNumber: 3,
-    title: 'Ikuti Panduan Kompos',
-    desc: 'Dapatkan instruksi langkah demi langkah dari AI Gemini untuk mengolah bahan menjadi kompos berkualitas.',
-    image: '/tutorial/step-3-compost.jpg',
-  },
-];
-
-export default function TutorialPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
-  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({})
-
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      setIsAuthenticated(!!data.user)
-    })
-  }, [])
-
-  const handleImageError = (stepNum: number) => {
-    setImageErrors((prev) => ({ ...prev, [stepNum]: true }))
-  }
+export default async function TutorialPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isAuthenticated = !!user
 
   return (
     <div className="flex-1 w-full bg-slate-50 text-slate-800 py-8 px-4 sm:px-6 safe-bottom">
@@ -65,29 +24,20 @@ export default function TutorialPage() {
 
         {/* STEP CARDS */}
         <div className="space-y-6">
-          {steps.map((step) => (
+          {TUTORIAL_STEPS.map((step) => (
             <div
               key={step.stepNumber}
               className="bg-white border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-xs transition-all hover:shadow-md"
             >
-              {/* IMAGE / FALLBACK */}
-              <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 mb-4 flex items-center justify-center">
-                {!imageErrors[step.stepNumber] ? (
-                  <Image
-                    src={step.image}
-                    alt={step.title}
-                    fill
-                    className="object-cover"
-                    onError={() => handleImageError(step.stepNumber)}
-                    unoptimized
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-6 text-center text-emerald-800">
-                    <span className="text-3xl mb-2">🌱</span>
-                    <p className="font-bold text-sm">Langkah {step.stepNumber}: {step.title}</p>
-                    <p className="text-xs text-emerald-600/80 mt-1">{step.desc}</p>
-                  </div>
-                )}
+              {/* IMAGE */}
+              <div className="relative w-full h-48 sm:h-64 rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 mb-4">
+                <Image
+                  src={step.image}
+                  alt={step.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 800px"
+                  className="object-cover"
+                />
               </div>
 
               {/* DETAILS */}
