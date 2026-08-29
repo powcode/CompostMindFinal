@@ -267,7 +267,7 @@ export default function HomePage() {
                 ✨ AI Vision Composting Assistant
               </span>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-                Ubah Sampah Organik Jadi <span className="text-emerald-600 underline decoration-emerald-300 decoration-wavy decoration-2">Nutrisi Tanah</span>
+                Ubah Bahan Organik Jadi <span className="text-emerald-600 underline decoration-emerald-300 decoration-wavy decoration-2">Nutrisi Tanah</span>
               </h1>
               <p className="text-slate-600 text-sm sm:text-base font-normal leading-relaxed">
                 Ambil foto sisa makanan atau bahan organikmu. AI kami akan mengidentifikasi kelayakannya dan memandu langkah pengomposan secara otomatis!
@@ -319,7 +319,7 @@ export default function HomePage() {
                       <div className="absolute inset-0 border-2 border-emerald-400/40 rounded-2xl pointer-events-none flex items-center justify-center p-8">
                         <div className="w-full h-full border-2 border-dashed border-emerald-400/70 rounded-xl relative animate-pulse">
                           <div className="absolute top-2 left-2 text-[10px] uppercase font-bold tracking-wider text-emerald-300 bg-slate-900/80 px-2 py-0.5 rounded backdrop-blur-xs">
-                            Arahkan ke Sampah
+                            Arahkan ke Object Compostable
                           </div>
                         </div>
                       </div>

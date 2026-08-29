@@ -32,7 +32,7 @@ export default async function TutorialPage() {
               {/* IMAGE CONTAINER WITH EXPLICIT MIN-HEIGHT */}
               <div 
                 className="relative w-full h-48 sm:h-64 rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 mb-4 block"
-                style={{ minHeight: '192px' }}
+                style={{ minHeight: '720px' }}
               >
                 <Image
                   src={step.image}
