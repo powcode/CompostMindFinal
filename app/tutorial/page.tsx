@@ -5,17 +5,18 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 
-interface Step {
-  stepNumber: number
-  title: string
-  desc: string
-  image: string
+// data/tutorial-steps.ts
+export interface TutorialStep {
+  stepNumber: number;
+  title: string;
+  desc: string;
+  image: string;
 }
 
-const steps: Step[] = [
+export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     stepNumber: 1,
-    title: 'Deteksi Bahan Makanan',
+    title: 'Deteksi Bahan Makanan dalam Kondisi Utuh',
     desc: 'Arahkan kamera ke sisa makanan. AI akan mengenali jenis dan kondisi bahan secara otomatis.',
     image: '/tutorial/step-1-detect.jpg',
   },
@@ -31,7 +32,7 @@ const steps: Step[] = [
     desc: 'Dapatkan instruksi langkah demi langkah dari AI Gemini untuk mengolah bahan menjadi kompos berkualitas.',
     image: '/tutorial/step-3-compost.jpg',
   },
-]
+];
 
 export default function TutorialPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
