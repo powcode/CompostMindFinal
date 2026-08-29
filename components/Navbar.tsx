@@ -1,3 +1,4 @@
+// components/Navbar.tsx
 'use client';
 
 import Link from 'next/link';
@@ -10,101 +11,69 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const supabase = createClient();
-
-    // Check current auth status
-    supabase.auth.getUser().then(({ data }) => {
+    
+    const initAuth = async () => {
+      const { data } = await supabase.auth.getUser();
       setIsAuthenticated(!!data.user);
-    });
+      setIsLoading(false);
+    };
 
-    // Listen for auth state changes
+    initAuth();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session?.user);
+      setIsLoading(false);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Hide Navbar on authentication pages (/login & /register)
-  if (pathname === '/login' || pathname === '/register') {
-    return null;
-  }
+  // Sembunyikan navbar total di halaman auth
+  if (pathname === '/login' || pathname === '/register') return null;
+  
+  // Placeholder saat loading auth untuk mencegah layout shift
+  if (isLoading) return <div className="h-16 w-full bg-white border-b border-slate-200" />;
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/70 shadow-xs transition-all">
+      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-slate-200/70">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
+          <div className="flex justify-between items-center h-16">
             
-            {/* Logo / Home Link */}
-            <div className="flex-shrink-0 flex items-center">
-              <Link 
-                href="/" 
-                className="text-xl sm:text-2xl font-black tracking-tight text-emerald-900 flex items-center gap-2.5 group"
-              >
-                <span className="p-2 bg-emerald-100 text-emerald-700 rounded-2xl group-hover:scale-105 group-hover:rotate-6 transition-transform text-lg sm:text-xl">
-                  🌱
-                </span>
-                <span>
-                  Compost<span className="text-emerald-600 font-extrabold">Mind</span>
-                </span>
-              </Link>
-            </div>
+            {/* LOGO - Selalu Tampil */}
+            <Link href="/" className="flex items-center gap-2 group active:opacity-70 transition-opacity">
+              <span className="p-1.5 bg-emerald-100 text-emerald-700 rounded-xl text-lg">🌱</span>
+              <span className="text-xl font-black tracking-tight text-slate-900">
+                Compost<span className="text-emerald-600">Mind</span>
+              </span>
+            </Link>
 
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center space-x-1 sm:space-x-2">
-              <Link 
-                href="/" 
-                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
-                  pathname === '/' 
-                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30' 
-                    : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
-                }`}
-              >
-                <span>📷</span>
-                <span>Scan Baru</span>
-              </Link>
+            {/* DESKTOP NAVIGATION - Hanya muncul di >= 768px (md) */}
+            <nav className="hidden md:flex items-center gap-1">
+              <NavLink href="/" icon="📷" label="Scan Baru" isActive={pathname === '/'} />
+              <NavLink href="/composting" icon="📋" label="Riwayat Sesi" isActive={pathname?.startsWith('/composting')} />
               
-              <Link 
-                href="/composting" 
-                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
-                  pathname?.startsWith('/composting') 
-                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30' 
-                    : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
-                }`}
-              >
-                <span>📋</span>
-                <span>Riwayat Sesi</span>
-              </Link>
-
               {isAuthenticated && (
-                <Link 
+                <NavLink 
                   href="/tutorial" 
-                  className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
-                    pathname === '/tutorial' 
-                      ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30' 
-                      : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
-                  }`}
-                >
-                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center border border-emerald-300">
-                    ?
-                  </span>
-                  <span>Tutorial</span>
-                </Link>
+                  icon={<span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center border border-emerald-300">?</span>} 
+                  label="Tutorial" 
+                  isActive={pathname === '/tutorial'} 
+                />
               )}
-            </div>
+            </nav>
 
-            {/* Mobile Hamburger Button */}
+            {/* MOBILE HAMBURGER BUTTON - Hanya muncul di < 768px */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              aria-label="Buka menu navigasi"
-              className="md:hidden w-11 h-11 flex items-center justify-center rounded-2xl text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 active:bg-emerald-100 transition-colors"
+              aria-label="Buka menu"
+              className="md:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             </button>
@@ -113,12 +82,29 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Mobile Navigation Drawer */}
-      <MobileMenu
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-        isAuthenticated={isAuthenticated}
+      {/* MOBILE MENU OVERLAY */}
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+        isAuthenticated={isAuthenticated} 
       />
     </>
+  );
+}
+
+// Komponen Helper untuk Link Desktop agar kode lebih bersih
+function NavLink({ href, icon, label, isActive }: { href: string; icon: React.ReactNode; label: string; isActive: boolean }) {
+  return (
+    <Link 
+      href={href}
+      className={`px-3 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
+        isActive 
+          ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20' 
+          : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
+      }`}
+    >
+      <span>{icon}</span>
+      <span>{label}</span>
+    </Link>
   );
 }
