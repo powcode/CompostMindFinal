@@ -35,6 +35,7 @@ export default async function TutorialPage() {
                   src={step.image}
                   alt={step.title}
                   fill
+                  priority={step.stepNumber === 1}
                   sizes="(max-width: 768px) 100vw, 800px"
                   className="object-cover"
                 />
