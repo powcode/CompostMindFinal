@@ -42,7 +42,7 @@ export default function Navbar() {
     <>
       <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-slate-200/70">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-16 relative">
             
             {/* LOGO - Selalu Tampil */}
             <Link href="/" className="flex items-center gap-2 group active:opacity-70 transition-opacity">
@@ -69,9 +69,10 @@ export default function Navbar() {
 
             {/* MOBILE HAMBURGER BUTTON - Hanya muncul di < 768px */}
             <button
+              type="button"
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Buka menu"
-              className="md:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100 active:bg-slate-200 transition-colors"
+              className="md:hidden relative z-50 p-2.5 rounded-xl text-slate-700 hover:bg-slate-100 active:bg-slate-200 active:scale-95 cursor-pointer transition-all"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />

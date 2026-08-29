@@ -46,20 +46,21 @@ export default function MobileMenu({ isOpen, onClose, isAuthenticated }: MobileM
       role="dialog"
       aria-modal="true"
       aria-hidden={!isOpen}
-      className={`fixed inset-0 z-50 transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[60] transition-opacity duration-300 ${
         isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
     >
       {/* BACKDROP OVERLAY */}
       <div 
-        className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs transition-opacity" 
+        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm cursor-pointer transition-opacity" 
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* PANEL SLIDE-IN */}
       <div
-        className={`absolute inset-y-0 right-0 w-full max-w-xs bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+        onClick={(e) => e.stopPropagation()}
+        className={`absolute inset-y-0 right-0 w-full max-w-[85%] sm:max-w-xs bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -80,9 +81,10 @@ export default function MobileMenu({ isOpen, onClose, isAuthenticated }: MobileM
 
           {/* CLOSE BUTTON */}
           <button
+            type="button"
             onClick={onClose}
             aria-label="Tutup menu"
-            className="w-11 h-11 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 active:bg-slate-200 transition-colors"
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 active:bg-slate-200 cursor-pointer transition-colors"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
