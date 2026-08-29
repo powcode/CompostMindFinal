@@ -2,9 +2,35 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Check current auth status
+    supabase.auth.getUser().then(({ data }) => {
+      setIsAuthenticated(!!data.user);
+    });
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session?.user);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Hide Navbar on authentication pages (/login & /register)
+  if (pathname === '/login' || pathname === '/register') {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-emerald-100/60 shadow-xs transition-all">
@@ -51,6 +77,22 @@ export default function Navbar() {
               <span>📋</span>
               <span>Riwayat Sesi</span>
             </Link>
+
+            {isAuthenticated && (
+              <Link 
+                href="/tutorial" 
+                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 ${
+                  pathname === '/tutorial' 
+                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30' 
+                    : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
+                }`}
+              >
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center border border-emerald-300">
+                  ?
+                </span>
+                <span>Tutorial</span>
+              </Link>
+            )}
           </div>
 
         </div>
