@@ -259,8 +259,12 @@ export default function CompostSessionPage() {
     }
   };
 
+  const hasUnspecifiedCondition = ingredients.some((ingr) => ingr.condition === 'whole');
+
   const handleStart = async () => {
     if (ingredients.length === 0) return alert("List bahan kosong! Scan atau tambah bahan terlebih dahulu.");
+    if (hasUnspecifiedCondition) return alert("Harap pilih kondisi bahan untuk semua item sebelum mulai kompos.");
+
     setIsStarting(true);
     try {
       const res = await fetch(`/api/sessions/${sessionId}/start`, { method: 'POST' });
@@ -400,11 +404,11 @@ export default function CompostSessionPage() {
             <div className="pt-4 border-t border-slate-100 space-y-3">
               <button 
                 onClick={handleStart}
-                disabled={isStarting || ingredients.length === 0}
+                disabled={isStarting || ingredients.length === 0 || hasUnspecifiedCondition}
                 className={`w-full py-4 px-6 rounded-2xl font-black text-base sm:text-lg text-white shadow-xl transition-all flex justify-center items-center gap-3 active:scale-98 ${
                   isStarting 
                     ? 'bg-amber-500 shadow-amber-500/20 cursor-wait' 
-                    : ingredients.length === 0 
+                    : ingredients.length === 0 || hasUnspecifiedCondition
                       ? 'bg-slate-300 shadow-none cursor-not-allowed text-slate-500' 
                       : 'bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 hover:from-emerald-700 hover:to-teal-900 shadow-emerald-600/30 hover:shadow-2xl hover:-translate-y-0.5'
                 }`}
@@ -419,8 +423,8 @@ export default function CompostSessionPage() {
                   </>
                 ) : (
                   <>
-                    <span>🚀 START COMPOSTING</span>
-                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-bold">Langkah Interaktif</span>
+                    <span>{hasUnspecifiedCondition ? 'PILIH KONDISI BAHAN' : '🚀 START COMPOSTING'}</span>
+                   
                   </>
                 )}
               </button>

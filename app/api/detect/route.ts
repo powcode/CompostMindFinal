@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !user) {x
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required. Please login to start composting.' },
         { status: 401 }

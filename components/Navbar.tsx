@@ -3,106 +3,163 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import MobileMenu from './MobileMenu';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
-    
+
     const initAuth = async () => {
       const { data } = await supabase.auth.getUser();
-      setIsAuthenticated(!!data.user);
-      setIsLoading(false);
+      setIsAuthenticated(Boolean(data.user));
     };
 
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session?.user);
-      setIsLoading(false);
+      setIsAuthenticated(Boolean(session?.user));
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Sembunyikan navbar total di halaman auth
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
   if (pathname === '/login' || pathname === '/register') return null;
-  
-  // Placeholder saat loading auth untuk mencegah layout shift
-  if (isLoading) return <div className="h-16 w-full bg-white border-b border-slate-200" />;
+
+  const navLinks = [
+    { href: '/', icon: '📷', label: 'Scan Baru', isActive: pathname === '/' },
+    {
+      href: '/composting',
+      icon: '📋',
+      label: 'Riwayat Sesi',
+      isActive: pathname?.startsWith('/composting') ?? false,
+    },
+  ];
 
   return (
-    <>
-      <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-slate-200/70">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 relative">
-            
-            {/* LOGO - Selalu Tampil */}
-            <Link href="/" className="flex items-center gap-2 group active:opacity-70 transition-opacity">
-              <span className="p-1.5 bg-emerald-100 text-emerald-700 rounded-xl text-lg">🌱</span>
-              <span className="text-xl font-black tracking-tight text-slate-900">
-                Compost<span className="text-emerald-600">Mind</span>
-              </span>
-            </Link>
+    <header className="sticky top-0 z-40 w-full border-b border-slate-200/70 bg-white/90 backdrop-blur-md">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="relative flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 transition-opacity active:opacity-70">
+            <span className="rounded-xl bg-emerald-100 p-1.5 text-lg text-emerald-700">🌱</span>
+            <span className="text-xl font-black tracking-tight text-slate-900">
+              Compost<span className="text-emerald-600">Mind</span>
+            </span>
+          </Link>
 
-            {/* DESKTOP NAVIGATION - Hanya muncul di >= 768px (md) */}
-            <nav className="hidden md:flex items-center gap-1">
-              <NavLink href="/" icon="📷" label="Scan Baru" isActive={pathname === '/'} />
-              <NavLink href="/composting" icon="📋" label="Riwayat Sesi" isActive={pathname?.startsWith('/composting')} />
-              
+          <div className="flex items-center gap-3">
+            <nav className="hidden items-center gap-1 md:flex">
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.href}
+                  href={link.href}
+                  icon={link.icon}
+                  label={link.label}
+                  isActive={link.isActive}
+                />
+              ))}
+
               {isAuthenticated && (
-                <NavLink 
-                  href="/tutorial" 
-                  icon={<span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center border border-emerald-300">?</span>} 
-                  label="Tutorial" 
-                  isActive={pathname === '/tutorial'} 
+                <NavLink
+                  href="/tutorial"
+                  icon={
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-300 bg-emerald-100 text-[10px] font-bold text-emerald-800">
+                      ?
+                    </span>
+                  }
+                  label="Tutorial"
+                  isActive={pathname === '/tutorial'}
                 />
               )}
             </nav>
 
-            {/* MOBILE HAMBURGER BUTTON - Hanya muncul di < 768px */}
             <button
               type="button"
-              onClick={() => setIsMobileMenuOpen(true)}
-              aria-label="Buka menu"
-              className="md:hidden relative z-50 p-2.5 rounded-xl text-slate-700 hover:bg-slate-100 active:bg-slate-200 active:scale-95 cursor-pointer transition-all"
+              aria-label="Toggle navigation menu"
+              aria-expanded={isMobileMenuOpen}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white p-2 shadow-sm transition hover:border-emerald-200 hover:text-emerald-700 md:hidden"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-              </svg>
+              <span className="sr-only"></span>
+              <img
+                src="/assets/hamburger.png"
+                alt="Menu"
+                className={`h-full w-full object-contain ${isMobileMenuOpen ? 'scale-110' : ''}`}
+                style={{ transition: 'transform 0.2s ease' }}
+              />
             </button>
-
           </div>
         </div>
-      </header>
 
-      {/* MOBILE MENU OVERLAY */}
-      <MobileMenu 
-        isOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)} 
-        isAuthenticated={isAuthenticated} 
-      />
-    </>
+        {isMobileMenuOpen && (
+          <nav className="border-t border-slate-200 bg-white py-3 md:hidden">
+            <div className="flex flex-col gap-2">
+              {navLinks.map((link) => (
+                <NavLink
+                  key={link.href}
+                  href={link.href}
+                  icon={link.icon}
+                  label={link.label}
+                  isActive={link.isActive}
+                  mobile
+                  onClick={() => setIsMobileMenuOpen(false)}
+                />
+              ))}
+
+              {isAuthenticated && (
+                <NavLink
+                  href="/tutorial"
+                  icon={
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-300 bg-emerald-100 text-[10px] font-bold text-emerald-800">
+                      ?
+                    </span>
+                  }
+                  label="Tutorial"
+                  isActive={pathname === '/tutorial'}
+                  mobile
+                  onClick={() => setIsMobileMenuOpen(false)}
+                />
+              )}
+            </div>
+          </nav>
+        )}
+      </div>
+    </header>
   );
 }
 
-// Komponen Helper untuk Link Desktop agar kode lebih bersih
-function NavLink({ href, icon, label, isActive }: { href: string; icon: React.ReactNode; label: string; isActive: boolean }) {
+function NavLink({
+  href,
+  icon,
+  label,
+  isActive,
+  mobile = false,
+  onClick,
+}: {
+  href: string;
+  icon: ReactNode;
+  label: string;
+  isActive: boolean;
+  mobile?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <Link 
+    <Link
       href={href}
-      className={`px-3 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
-        isActive 
-          ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20' 
+      onClick={onClick}
+      className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
+        isActive
+          ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
           : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
-      }`}
+      } ${mobile ? 'w-full justify-start' : ''}`}
     >
       <span>{icon}</span>
       <span>{label}</span>
