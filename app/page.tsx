@@ -14,10 +14,11 @@ export default function HomePage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
   
+  type DetectedItem = { id?: string; name: string; quantity: number; condition: 'whole' | 'peel' | 'rotten' };
+
   // State untuk Pop-up Modal Hasil Deteksi
   const [showModal, setShowModal] = useState(false);
-  const [detectedItems, setDetectedItems] = useState<{ id?: string; name: string; quantity: number; condition: 'whole' | 'peel' | 'rotten' }[]>([]);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [detectedItems, setDetectedItems] = useState<DetectedItem[]>([]);
 
   // State Tab untuk Mobile / Navigation View
   const [activeTab, setActiveTab] = useState<'home' | 'history' | 'tips'>('home');
@@ -61,14 +62,18 @@ export default function HomePage() {
 
   useEffect(() => {
     if (inputMode === 'camera' && !imagePreview && activeTab === 'home') {
-      startCamera();
-    } else {
-      stopCamera();
+      const timer = window.setTimeout(() => {
+        void startCamera();
+      }, 0);
+
+      return () => {
+        window.clearTimeout(timer);
+        stopCamera();
+      };
     }
 
-    return () => {
-      stopCamera();
-    };
+    stopCamera();
+    return undefined;
   }, [inputMode, imagePreview, activeTab]);
 
   // Handle Tombol "Jepret / Capture"
@@ -118,7 +123,6 @@ export default function HomePage() {
     setImagePreview(null);
     setImageFile(null);
     setShowModal(false);
-    setSessionId(null);
     if (inputMode === 'camera') {
       startCamera();
     }
@@ -153,16 +157,19 @@ export default function HomePage() {
         body: formData,
       });
 
-      const data = await res.json();
+      const data = (await res.json()) as {
+        ingredients?: Array<{ name: string; quantity: number; condition?: 'whole' | 'peel' | 'rotten'; confidence_score?: number }>;
+        error?: string;
+      };
 
       if (res.ok) {
         if (data.ingredients && data.ingredients.length > 0) {
-          const formatted = data.ingredients.map((item: any) => ({
-            ...item,
-            condition: 'whole' as const
+          const formatted: DetectedItem[] = data.ingredients.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            condition: item.condition ?? 'whole'
           }));
           setDetectedItems(formatted);
-          setSessionId(data.session_id);
           setShowModal(true);
         } else {
           alert('Tidak ada objek compostable yang terdeteksi. Coba foto yang lebih jelas atau dekat!');
@@ -202,12 +209,48 @@ export default function HomePage() {
     }
   };
 
-  const handleConfirm = () => {
-    if (sessionId) {
-      router.push(`/composting/${sessionId}`);
-    } else {
-      alert("Error: Session ID hilang.");
+  const handleConfirm = async () => {
+    if (!detectedItems.length) {
+      alert('Tidak ada bahan yang siap disimpan.');
+      return;
     }
+
+    try {
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ingredients: detectedItems.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            condition: item.condition,
+            confidence_score: item.id ? undefined : undefined,
+          }))
+        })
+      });
+
+      const data = (await res.json()) as { error?: string; session_id?: string };
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal membuat sesi composting.');
+      }
+
+      if (data.session_id) {
+        setShowModal(false);
+        router.push(`/composting/${data.session_id}`);
+        return;
+      }
+
+      throw new Error('Session ID tidak diterima dari server.');
+    } catch (error: unknown) {
+      console.error('Gagal menyimpan sesi:', error);
+      alert(error instanceof Error ? error.message : 'Gagal menyimpan sesi composting.');
+    }
+  };
+
+  const handleExitDetected = () => {
+    setShowModal(false);
+    setDetectedItems([]);
   };
 
   return (
@@ -611,6 +654,12 @@ export default function HomePage() {
 
             {/* MODAL ACTIONS */}
             <div className="flex gap-3">
+              <button
+                onClick={handleExitDetected}
+                className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-sm shadow-md shadow-red-600/30 transition-all active:scale-98 border border-red-600"
+              >
+                Keluar
+              </button>
               <button
                 onClick={handleRetake}
                 className="flex-1 py-3 px-4 border border-slate-200 rounded-2xl font-bold text-slate-600 text-sm hover:bg-slate-50 transition-colors"

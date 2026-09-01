@@ -2,12 +2,13 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -27,10 +28,6 @@ export default function Navbar() {
 
     return () => subscription.unsubscribe();
   }, []);
-
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
 
   if (pathname === '/login' || pathname === '/register') return null;
 
@@ -56,6 +53,17 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center gap-3">
+            {pathname !== '/' && (
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+              >
+                <span aria-hidden="true">←</span>
+                <span>Back</span>
+              </button>
+            )}
+
             <nav className="hidden items-center gap-1 md:flex">
               {navLinks.map((link) => (
                 <NavLink

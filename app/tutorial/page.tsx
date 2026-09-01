@@ -30,7 +30,10 @@ export default async function TutorialPage() {
               className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-xs transition-all hover:shadow-md flex flex-col gap-4"
             >
               {/* IMAGE CONTAINER */}
-              <div className="relative w-full h-48 sm:h-64 rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 shrink-0">
+              <div
+                className="relative w-full rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 shrink-0"
+                style={{ aspectRatio: `${step.width} / ${step.height}` }}
+              >
                 <Image
                   src={step.image}
                   alt={step.title}

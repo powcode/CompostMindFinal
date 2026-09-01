@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { createClient } from '@/utils/supabase/server';
-import { YoloResponse, DbIngredient } from '@/lib/types';
+import { YoloResponse } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,59 +66,26 @@ export async function POST(request: NextRequest) {
       aggregatedMap.set(item.name, current);
     }
 
-    // 5. Simpan ke Supabase (Fase Pre-Composting)
-    const sessionPayload = { status: 'pre_composting', user_id: user.id };
-
-    const { data: newSession, error: sessionError } = await supabase
-      .from('sessions')
-      .insert(sessionPayload)
-      .select('id')
-      .single();
-
-    if (sessionError || !newSession) {
-      throw new Error(`Gagal membuat sesi di Supabase: ${sessionError?.message}`);
-    }
-
-    const sessionId = newSession.id;
-
-    // Siapkan data ingredients untuk di-insert
-    const ingredientsToInsert: DbIngredient[] = Array.from(aggregatedMap.entries()).map(([name, data]) => ({
-      session_id: sessionId,
-      name: name,
+    const ingredientsToReturn = Array.from(aggregatedMap.entries()).map(([name, data]) => ({
+      name,
       quantity: data.quantity,
-      condition: 'whole',
+      condition: 'whole' as const,
       confidence_score: data.max_confidence
     }));
 
-    const { data: insertedIngredients, error: ingredientsError } = await supabase
-      .from('ingredients')
-      .insert(ingredientsToInsert)
-      .select('id, name, quantity, condition');
-
-    if (ingredientsError || !insertedIngredients) {
-      throw new Error(`Gagal menyimpan bahan ke Supabase: ${ingredientsError?.message}`);
-    }
-
-    console.log(`💾 Berhasil simpan session ${sessionId} dengan ${insertedIngredients.length} jenis bahan.`);
-
     return NextResponse.json({
       status: 'success',
-      session_id: sessionId,
-      ingredients: insertedIngredients.map(i => ({ 
-        id: i.id, 
-        name: i.name, 
-        quantity: i.quantity,
-        condition: i.condition || 'whole'
-      }))
+      ingredients: ingredientsToReturn
     }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Terjadi error di /api/detect:', error);
-    
-    if (error.code === 'ECONNREFUSED') {
+
+    const axiosError = error as { code?: string; message?: string };
+    if (axiosError.code === 'ECONNREFUSED') {
       return NextResponse.json({ error: 'Server AI Python sedang offline. Pastikan server Python berjalan.' }, { status: 503 });
     }
 
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: axiosError.message || 'Internal Server Error' }, { status: 500 });
   }
 }
