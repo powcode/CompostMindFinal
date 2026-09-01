@@ -188,9 +188,33 @@ export default function HomePage() {
   const updateQuantity = async (index: number, delta: number) => {
     const newItems = [...detectedItems];
     const item = newItems[index];
-    const newQuantity = item.quantity + delta;
+    const currentQuantity = item.quantity;
+    const newQuantity = currentQuantity + delta;
 
-    if (newQuantity < 1) return;
+    if (newQuantity < 0) return;
+
+    if (newQuantity === 0) {
+      const confirmed = window.confirm(
+        `Hapus item "${item.name.replace('_', ' ')}" dari hasil deteksi?`
+      );
+
+      if (!confirmed) return;
+
+      const filteredItems = newItems.filter((_, itemIndex) => itemIndex !== index);
+      setDetectedItems(filteredItems);
+
+      if (item.id) {
+        try {
+          await fetch(`/api/ingredients/${item.id}`, {
+            method: 'DELETE',
+          });
+        } catch (err) {
+          console.error('Gagal menghapus bahan dari database:', err);
+        }
+      }
+
+      return;
+    }
 
     item.quantity = newQuantity;
     setDetectedItems(newItems);

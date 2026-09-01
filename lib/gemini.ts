@@ -49,7 +49,7 @@ export async function generateCompostSteps(ingredients: { name: string; quantity
 Generator JSON CompostMind - Ahli Kompos Rumah Tangga & Pencegahan Food Waste
 
 [Tujuan]
-Menghasilkan panduan kompos 3-5 langkah dalam format JSON murni berdasarkan KONDISI bahan.
+Menghasilkan panduan kompos 3++ langkah detail dalam format JSON murni berdasarkan KONDISI bahan.
 
 [Konteks Bahan]
 ${ingredientList}
