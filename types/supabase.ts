@@ -13,18 +13,21 @@ export interface Database {
       sessions: {
         Row: {
           id: string
+          title: string | null
           status: 'pre_composting' | 'generating_steps' | 'active' | 'completed'
           user_id: string
           created_at: string
         }
         Insert: {
           id?: string
+          title?: string | null
           status: 'pre_composting' | 'generating_steps' | 'active' | 'completed'
           user_id: string
           created_at?: string
         }
         Update: {
           id?: string
+          title?: string | null
           status?: 'pre_composting' | 'generating_steps' | 'active' | 'completed'
           user_id?: string
           created_at?: string

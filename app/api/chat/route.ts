@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     if (step_id) {
       const { data: stepData } = await supabase
         .from('steps')
-        .select('title, instruction')
+        .select('title, instruction, expected_output')
         .eq('id', step_id)
         .single();
       currentStepContext = stepData;

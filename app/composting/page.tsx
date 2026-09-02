@@ -7,6 +7,7 @@ import SessionCard from '@/components/SessionCard';
 
 interface SessionData {
   id: string;
+  title?: string | null;
   status: string;
   created_at: string;
   user_id: string;
@@ -105,6 +106,7 @@ export default function CompostDashboardPage() {
               <SessionCard
                 key={session.id}
                 id={session.id}
+                title={session.title}
                 status={session.status}
                 createdAt={formatDate(session.created_at)}
                 ingredients={session.ingredients}

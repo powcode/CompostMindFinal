@@ -23,10 +23,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { ingredients } = body;
+    const requestedTitle = typeof body.title === 'string' ? body.title.trim() : '';
+    const sessionTitle = requestedTitle || null;
 
     const { data: newSession, error: sessionError } = await supabase
       .from('sessions')
       .insert({ 
+        title: sessionTitle,
         status: 'pre_composting', 
         user_id: user.id 
       })
@@ -92,7 +95,7 @@ export async function GET() {
 
     const { data: sessions, error } = await supabase
       .from('sessions')
-      .select('id, status, created_at, user_id, ingredients(name, quantity)')
+      .select('id, title, status, created_at, user_id, ingredients(name, quantity)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 

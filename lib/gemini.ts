@@ -38,45 +38,64 @@ function extractJsonFromString(text: string): any {
 /**
  * Fungsi untuk generate step-by-step tutorial kompos
  */
-export async function generateCompostSteps(ingredients: { name: string; quantity: number; condition?: string }[]) {
-  // Format konteks agar Gemini paham kondisi setiap bahan
-  const ingredientList = ingredients.map(i => 
-    `- ${i.quantity}x ${i.name} [KONDISI: ${(i.condition || 'whole').toUpperCase()}]`
-  ).join("\n");
-
-  const prompt = `
+function buildCompostPrompt(ingredientList: string) {
+  return `
 [Peran]
 Generator JSON CompostMind - Ahli Kompos Rumah Tangga & Pencegahan Food Waste
 
 [Tujuan]
-Menghasilkan panduan kompos 3++ langkah detail dalam format JSON murni berdasarkan KONDISI bahan.
+Menghasilkan panduan kompos 4++ langkah yang sangat detail, rinci, dan mudah diikuti dalam format JSON murni berdasarkan KONDISI bahan.
+
+[TARGET JUMLAH LANGKAH]
+- Minimal 6 langkah untuk bahan sederhana.
+- Minimal 8 langkah bila ada 2-3 bahan campuran.
+- Minimal 10-15 langkah bila banyak bahan dengan kondisi campuran.
+- JANGAN BATASI hanya 4 langkah; output harus lebih detail dari itu.
+- Tetap relevan dan tidak bertele-tele, tapi setiap langkah harus sangat spesifik.
 
 [Konteks Bahan]
 ${ingredientList}
 
 [Langkah Kerja & Aturan Ketat]
-1. JIKA ADA bahan dengan [KONDISI: WHOLE]: 
+1. JIKA ADA bahan dengan [KONDISI: WHOLE]:
    - LANGKAH PERTAMA WAJIB: Instruksikan user untuk MENGONSUMSI atau memisahkan bagian utuh tersebut.
    - DILARANG mengomposkan makanan utuh yang masih layak makan!
 2. HANYA hasilkan instruksi pengomposan untuk bahan [PEEL] atau [ROTTEN].
 3. DILARANG KERAS menyarankan pengomposan daging, susu, minyak, atau makanan berminyak.
 4. SETIAP langkah WAJIB punya "expected_output" berupa deskripsi sensorik (warna, tekstur, bau).
-5. Output HARUS raw JSON Array tanpa markdown atau teks pembuka.
+5. Buat langkah-langkah dalam urutan logis: pemisahan, pencacahan, pencampuran, penyusunan, penyiraman, aerasi, dan pemantauan.
+6. Jika bahan banyak, sertakan langkah tambahan untuk penyusunan kompos, rasio bahan, dan pengecekan kelembapan.
+7. Output HARUS raw JSON Array tanpa markdown atau teks pembuka.
+8. Jangan buat output pendek hanya 2-4 langkah; ini harus tutorial yang sangat detail dan terukur.
 
 [Format Output Wajib]
 [
   {
-    "title": "Konsumsi / Pisahkan Bahan Utuh",
-    "instruction": "Apel masih utuh segar. Silakan makan terlebih dahulu. Ambil kulit/sisanya saja untuk dikompos.",
-    "expected_output": "Buah utuh telah dikonsumsi, menyisakan kulit/sisa yang siap diolah."
+    "title": "Pemisahan dan Konsumsi Bahan Utuh",
+    "instruction": "Apel masih utuh segar. Makanlah terlebih dahulu atau pisahkan bagian yang layak dimakan. Ambil kulit dan sisa buah yang tidak layak dimakan untuk kompos.",
+    "expected_output": "Bahan utuh telah dipisahkan, menyisakan kulit dan sisa buah yang siap diolah menjadi kompos."
   },
   {
     "title": "Cacah Kulit Buah",
-    "instruction": "Potong kulit pisang menjadi ukuran 2-3 cm.",
-    "expected_output": "Cacahan seragam 2-3 cm, aroma buah segar tanpa bau busuk tajam."
+    "instruction": "Potong kulit apel menjadi potongan 2-3 cm agar cepat terurai, hindari potongan terlalu besar karena memperlambat proses composting.",
+    "expected_output": "Potongan kulit rata, berukuran kecil, dengan aroma segar dan tanpa bau busuk yang menyengat."
+  },
+  {
+    "title": "Persiapkan Media Kompos",
+    "instruction": "Siapkan ember atau wadah kompos dengan lapisan serasah atau ranting halus sebagai dasar, lalu letakkan bahan hijau dan cokelat secara bergantian.",
+    "expected_output": "Dasar kompos terlihat porous, lembap, dan siap menampung bahan aktif."
   }
 ]
   `;
+}
+
+export async function generateCompostSteps(ingredients: { name: string; quantity: number; condition?: string }[]) {
+  // Format konteks agar Gemini paham kondisi setiap bahan
+  const ingredientList = ingredients.map(i =>
+    `- ${i.quantity}x ${i.name} [KONDISI: ${(i.condition || 'whole').toUpperCase()}]`
+  ).join("\n");
+
+  const prompt = buildCompostPrompt(ingredientList);
 
   try {
     console.log(`🧠 Mengirim prompt ke ${MODEL_NAME}...`);
@@ -98,6 +117,10 @@ ${ingredientList}
       }
     }
 
+    if (steps.length < 4) {
+      throw new Error(`Gemini menghasilkan langkah terlalu sedikit (${steps.length}). Dibutuhkan minimal 4 langkah agar tutorial tetap detail.`);
+    }
+
     return steps;
   } catch (error: any) {
     console.error(" FATAL ERROR DI GEMINI PARSER:", error.message);
@@ -111,36 +134,61 @@ ${ingredientList}
 export async function chatWithCompostBot(
   userMessage: string, 
   ingredients: { name: string; quantity: number; condition?: string }[],
-  currentStepContext?: { title: string; instruction: string } | null
+  currentStepContext?: { title: string; instruction: string; expected_output?: string } | null
 ) {
-  let contextString = `Bahan kompos saat ini: ${ingredients.map(i => {
+  const ingredientContext = ingredients.map(i => {
     let cond = i.condition;
     if (!cond) {
       console.warn("⚠️ Missing condition data, assuming whole");
       cond = 'whole';
     }
     return `${i.quantity}x ${i.name} [${cond.toUpperCase()}]`;
-  }).join(", ")}.`;
-  
-  if (currentStepContext) {
-    contextString += `\nUser sedang di langkah: "${currentStepContext.title}".`;
-  }
+  }).join(", ");
+
+  const stepContext = currentStepContext
+    ? `Judul: ${currentStepContext.title}\nInstruksi: ${currentStepContext.instruction}\nHasil yang diharapkan: ${currentStepContext.expected_output || '(tidak tersedia)'}`
+    : 'Tidak ada langkah aktif.';
 
   const chatModel = genAI.getGenerativeModel({ model: MODEL_NAME });
 
   const prompt = `
-[PERAN] Kamu adalah CompostBot, asisten ramah CompostMind.
+[Peran]
+CompostBot - Asisten Kompos CompostMind (Stage-Aware Strict Scope)
 
-[KONTEKS]
-${contextString}
+[Tujuan]
+Menjawab pertanyaan user berdasarkan data sesi dan langkah aktif dengan pembedaan eksplisit antara bahan milik user dan elemen instruksional tahap aktif, termasuk kemampuan menjawab pertanyaan tentang komponen tahap itu sendiri.
 
-[ATURAN RESPON]
-1. JIKA ada bahan [WHOLE]: Dorong user untuk mengonsumsinya dulu, jangan dikompos!
-2. JIKA ada bahan [PEEL]/[ROTTEN]: Bantu user mengomposkannya dengan aman.
-3. DILARANG mengomposkan daging, susu, minyak.
-4. Bahasa Indonesia santai, maksimal 3 kalimat.
+[Data Sesi]
+BAHAN_USER:
+${ingredientContext || 'Tidak ada bahan tercatat.'}
 
-[Pertanyaan User] "${userMessage}"
+STAGE_CONTEXT:
+${stepContext}
+
+USER_MESSAGE:
+${userMessage}
+
+[Langkah Kerja]
+1. Gunakan BAHAN_USER sebagai daftar bahan yang dimiliki user (dengan jumlah + tipe [WHOLE]/[PEEL]/[ROTTEN]).
+2. Gunakan STAGE_CONTEXT sebagai seluruh teks deskripsi tahap aktif, termasuk bahan rekomendasi, kondisi, rasio, dan hasil yang diharapkan.
+3. Klasifikasi pertanyaan user:
+   - Tipe A (Bahan User): merujuk entitas di BAHAN_USER → normalisasi nama + terapkan aturan tipe.
+   - Tipe B (Elemen Tahap): merujuk kata/frasa yang muncul dalam STAGE_CONTEXT (contoh: "daun kering", "kardus", "rasio C/N", "kondisi lembab") → jawab berdasarkan informasi eksplisit di STAGE_CONTEXT.
+   - Tipe C (Out-of-Scope): tidak ditemukan di BAHAN_USER maupun STAGE_CONTEXT → tolak dengan kalimat standar.
+4. Untuk Tipe B: gunakan HANYA informasi yang tertulis literal di STAGE_CONTEXT; dilarang inferensi atau pengetahuan eksternal tentang kompos.
+5. Normalisasi nama hanya untuk Tipe A.
+
+[Batasan]
+- Validasi Literal: Pertanyaan Tipe B hanya boleh dijawab jika kata kunci/frasa tersebut muncul SECARA EKSPLISIT di STAGE_CONTEXT. Sinonim atau konsep implisit = Tipe C.
+- Penolakan Standar: "Maaf, saya hanya bisa membantu bahan yang sedang kamu proses saat ini." (gunakan persis, tanpa variasi).
+- Dilarang Menambah Informasi: Tidak boleh menjelaskan elemen tahap di luar yang tertulis, meskipun benar secara teknis kompos.
+- Normalisasi Wajib (Tipe A): "nama_internal [TIPE]" → nama alami Bahasa Indonesia.
+- Aturan Tipe Bahan (hanya Tipe A): [WHOLE]→konsumsi, [PEEL]/[ROTTEN]→kompos aman, daging/susu/minyak→TOLAK.
+- Gaya: Bahasa Indonesia santai, maksimal 3 kalimat, tanpa pengantar atau metadata.
+- Dilarang: Menjawab pertanyaan umum kompos, merujuk tahap tidak aktif, atau asumsi kelengkapan data.
+
+[Format Output]
+Respons teks polos maksimal 3 kalimat sesuai klasifikasi tipe. Jika Tipe C, output hanya kalimat penolakan standar.
   `;
 
   try {

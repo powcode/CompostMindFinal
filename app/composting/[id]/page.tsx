@@ -16,6 +16,7 @@ export default function CompostSessionPage() {
   // --- STATES UTAMA ---
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [sessionStatus, setSessionStatus] = useState<string>('loading');
+  const [sessionTitle, setSessionTitle] = useState<string>('Sesi Pengomposan Baru');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isStarting, setIsStarting] = useState(false);
@@ -35,10 +36,12 @@ export default function CompostSessionPage() {
   // 1. DATA FETCHING (Load Sesi, Bahan, Chat)
   // ==========================================
   const fetchSessionData = async () => {
-    // Fetch status
-    const { data: session } = await supabase.from('sessions').select('status').eq('id', sessionId).single();
+    // Fetch status dan title
+    const { data: session } = await supabase.from('sessions').select('status, title').eq('id', sessionId).single();
     if (session) {
+      const resolvedTitle = (session.title ?? '').trim() || 'Sesi Pengomposan Baru';
       setSessionStatus(session.status);
+      setSessionTitle(resolvedTitle);
       if (session.status === 'active' || session.status === 'completed') {
         const { data: firstStep } = await supabase.from('steps').select('id').eq('session_id', sessionId).eq('step_order', 1).single();
         if (firstStep) router.push(`/composting/${sessionId}/step/${firstStep.id}`);
@@ -56,6 +59,29 @@ export default function CompostSessionPage() {
     // Fetch chat awal
     const { data: chats } = await supabase.from('chat_history').select('role, message').eq('session_id', sessionId).is('step_id', null).order('created_at');
     if (chats) setChatMessages(chats);
+  };
+
+  const handleEditSessionTitle = async () => {
+    const nextTitleInput = window.prompt('Masukkan judul sesi baru:', sessionTitle);
+    if (nextTitleInput === null) return;
+
+    const nextTitle = nextTitleInput.trim();
+    const finalTitle = nextTitle || null;
+
+    setSessionTitle(finalTitle || 'Sesi Pengomposan Baru');
+
+    try {
+      const { error } = await supabase
+        .from('sessions')
+        .update({ title: finalTitle })
+        .eq('id', sessionId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Gagal memperbarui judul sesi:', error);
+      alert('Gagal memperbarui judul sesi.');
+      setSessionTitle((sessionTitle || 'Sesi Pengomposan Baru').trim() || 'Sesi Pengomposan Baru');
+    }
   };
 
   useEffect(() => {
@@ -298,7 +324,18 @@ export default function CompostSessionPage() {
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-900/60 text-emerald-200 border border-emerald-500/30 mb-2">
               🥣 Persiapan Bahan Kompos
             </span>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Sesi Pengomposan Baru</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{sessionTitle}</h1>
+              <button
+                type="button"
+                onClick={handleEditSessionTitle}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors"
+                aria-label="Edit judul sesi"
+                title="Edit judul sesi"
+              >
+                ✏️
+              </button>
+            </div>
             <p className="text-emerald-100/80 text-xs sm:text-sm mt-1 font-mono">
               ID Sesi: {sessionId}
             </p>

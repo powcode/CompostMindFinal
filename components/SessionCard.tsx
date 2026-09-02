@@ -9,6 +9,7 @@ interface Ingredient {
 
 interface SessionCardProps {
   id: string;
+  title?: string | null;
   status: string;
   createdAt: string;
   ingredients: Ingredient[];
@@ -17,11 +18,18 @@ interface SessionCardProps {
 
 export default function SessionCard({
   id,
+  title,
   status,
   createdAt,
   ingredients,
   onClick,
 }: SessionCardProps) {
+  const sessionTitle = (() => {
+    const trimmedTitle = (title || '').trim();
+    if (trimmedTitle) return trimmedTitle;
+    return `Sesi ${id.slice(0, 6).toUpperCase()}`;
+  })();
+
   const getStatusBadge = (st: string) => {
     switch (st) {
       case 'pre_composting':
@@ -44,7 +52,7 @@ export default function SessionCard({
     >
       <div className="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
         <div>
-          <h3 className="font-bold text-slate-800 text-base sm:text-lg">Sesi {id.slice(0, 6).toUpperCase()}</h3>
+          <h3 className="font-bold text-slate-800 text-base sm:text-lg">{sessionTitle}</h3>
           <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">{createdAt}</p>
         </div>
         {getStatusBadge(status)}

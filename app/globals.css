@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4fbf4;
+  --foreground: #1b2e1d;
+  --surface: #ffffff;
+  --surface-strong: #edf8ee;
+  --surface-soft: #e6f5e8;
+  --primary: #2d7d46;
+  --primary-strong: #1d5a35;
+  --primary-soft: #bfe5c3;
+  --muted: #5a6f5d;
+  --border: rgba(41, 103, 63, 0.14);
+  --shadow: rgba(28, 78, 42, 0.09);
 }
 
 @theme inline {
@@ -14,8 +23,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0d1b12;
+    --foreground: #edf7ef;
+    --surface: #112719;
+    --surface-strong: #183a2a;
+    --surface-soft: #1b4733;
+    --primary: #6ec98a;
+    --primary-strong: #8fe2a3;
+    --primary-soft: rgba(110, 201, 138, 0.18);
+    --muted: #bfd9c4;
+    --border: rgba(158, 224, 175, 0.12);
+    --shadow: rgba(5, 11, 8, 0.45);
   }
 }
 
@@ -36,11 +54,14 @@ body {
 
 body {
   min-height: 100vh;
-  background: var(--background);
+  background:
+    radial-gradient(circle at top, rgba(122, 201, 139, 0.18), transparent 28%),
+    linear-gradient(180deg, var(--background) 0%, color-mix(in srgb, var(--background) 92%, #ffffff 8%) 100%);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   overscroll-behavior-y: auto;
 }
 
@@ -54,6 +75,24 @@ button {
 }
 
 @media screen and (max-width: 768px) {
+  :root {
+    --background: #f2f9f2;
+    --surface: #ffffff;
+    --surface-strong: #edf7ee;
+    --surface-soft: #e6f5e8;
+  }
+
+  html,
+  body {
+    background-attachment: scroll;
+  }
+
+  body {
+    background:
+      linear-gradient(180deg, #edf9ee 0%, #f7fbf7 100%);
+    color: var(--foreground);
+  }
+
   input,
   select,
   textarea {
