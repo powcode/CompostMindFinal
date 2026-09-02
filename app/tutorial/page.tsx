@@ -15,10 +15,10 @@ export default async function TutorialPage() {
         {/* HEADER */}
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
-            Panduan Composting
+            Panduan Composting di CompostMind
           </h1>
           <p className="text-sm text-slate-600">
-            Pelajari 3 langkah mudah mengolah sisa makanan menjadi kompos berkualitas tinggi dengan bantuan AI.
+            Pelajari Semua langkah mengolah bahan compostable menjadi kompos berkualitas tinggi dengan bantuan AI.
           </p>
         </div>
 
@@ -31,16 +31,16 @@ export default async function TutorialPage() {
             >
               {/* IMAGE CONTAINER */}
               <div
-                className="relative w-full rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 shrink-0"
-                style={{ aspectRatio: `${step.width} / ${step.height}` }}
+                className="w-full max-w-full rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 shrink-0"
               >
                 <Image
                   src={step.image}
                   alt={step.title}
-                  fill
-                  priority={step.stepNumber === 1}
-                  sizes="(max-width: 768px) 100vw, 800px"
-                  className="object-cover"
+                  width={step.width}
+                  height={step.height}
+                  loading="eager"
+                  sizes="(max-width: 768px) calc(100vw - 2rem), 720px"
+                  className="block w-full max-w-full h-auto"
                 />
               </div>
 
