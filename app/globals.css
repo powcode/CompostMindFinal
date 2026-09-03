@@ -74,6 +74,40 @@ button {
   cursor: pointer;
 }
 
+.interactive-button {
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.interactive-button:hover {
+  transform: translateY(-2px) scale(1.015);
+}
+
+.interactive-button:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.interactive-card {
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.interactive-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 30px rgba(28, 78, 42, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive-button,
+  .interactive-card {
+    transition: none;
+  }
+
+  .interactive-button:hover,
+  .interactive-button:active,
+  .interactive-card:hover {
+    transform: none;
+  }
+}
+
 @media screen and (max-width: 768px) {
   :root {
     --background: #f2f9f2;

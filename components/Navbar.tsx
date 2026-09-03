@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 export default function Navbar() {
@@ -31,6 +32,16 @@ export default function Navbar() {
 
   if (pathname === '/login' || pathname === '/register') return null;
 
+  const isCompostingStep = /^\/composting\/[^/]+\/step\/[^/]+$/.test(pathname ?? '');
+  const handleBack = () => {
+    if (isCompostingStep) {
+      router.push('/composting');
+      return;
+    }
+
+    router.back();
+  };
+
   const navLinks = [
     { href: '/', icon: '📷', label: 'Scan Baru', isActive: pathname === '/' },
     {
@@ -45,25 +56,27 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 w-full border-b border-slate-200/70 bg-white/90 backdrop-blur-md">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 transition-opacity active:opacity-70">
-            <span className="rounded-xl bg-emerald-100 p-1.5 text-lg text-emerald-700">🌱</span>
-            <span className="text-xl font-black tracking-tight text-slate-900">
-              Compost<span className="text-emerald-600">Mind</span>
-            </span>
-          </Link>
-
           <div className="flex items-center gap-3">
             {pathname !== '/' && (
               <button
                 type="button"
-                onClick={() => router.back()}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                aria-label="Kembali ke halaman sebelumnya"
+                onClick={handleBack}
+                className="interactive-button inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-xl font-semibold leading-none text-slate-700 shadow-sm hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
               >
-                <span aria-hidden="true">←</span>
-                <span>Back</span>
+                <ArrowLeft aria-hidden="true" size={19} strokeWidth={2.5} />
               </button>
             )}
 
+            <Link href="/" className="interactive-button flex items-center gap-2 active:opacity-70">
+              <span className="rounded-xl bg-emerald-100 p-1.5 text-lg text-emerald-700">🌱</span>
+              <span className="text-xl font-black tracking-tight text-slate-900">
+                Compost<span className="text-emerald-600">Mind</span>
+              </span>
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-3">
             <nav className="hidden items-center gap-1 md:flex">
               {navLinks.map((link) => (
                 <NavLink
@@ -93,7 +106,7 @@ export default function Navbar() {
               type="button"
               aria-label="Toggle navigation menu"
               aria-expanded={isMobileMenuOpen}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white p-2 shadow-sm transition hover:border-emerald-200 hover:text-emerald-700 md:hidden"
+              className="interactive-button inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white p-2 shadow-sm hover:border-emerald-200 hover:text-emerald-700 md:hidden"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             >
               <span className="sr-only"></span>
@@ -163,7 +176,7 @@ function NavLink({
     <Link
       href={href}
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
+      className={`interactive-button flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${
         isActive
           ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
           : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'

@@ -99,7 +99,18 @@ export default function StepDetailPage() {
     if (!step) return;
 
     // Update DB
-    await supabase.from('steps').update({ is_completed: true }).eq('id', stepId);
+    const { error } = await supabase
+      .from('steps')
+      .update({ is_completed: true })
+      .eq('id', stepId);
+
+    if (error) {
+      alert('Gagal menyelesaikan langkah ini. Silakan coba lagi.');
+      return;
+    }
+
+    setStep(prev => prev ? { ...prev, is_completed: true } : prev);
+    setAllSteps(prev => prev.map(item => item.id === stepId ? { ...item, is_completed: true } : item));
     
     // Cek apakah ini step terakhir
     const currentOrder = step.step_order;
@@ -116,6 +127,12 @@ export default function StepDetailPage() {
       if (nextStep) router.push(`/composting/${sessionId}/step/${nextStep.id}`);
     }
   };
+
+  const currentStepIndex = allSteps.findIndex(item => item.id === stepId);
+  const previousStep = currentStepIndex > 0 ? allSteps[currentStepIndex - 1] : null;
+  const nextStep = currentStepIndex >= 0 && currentStepIndex < allSteps.length - 1
+    ? allSteps[currentStepIndex + 1]
+    : null;
 
   if (!step) return <div className="min-h-screen flex items-center justify-center text-gray-500">Memuat langkah...</div>;
 
@@ -181,10 +198,34 @@ export default function StepDetailPage() {
 
             <button 
               onClick={handleCompleteStep}
+              disabled={step.is_completed}
               className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-xl shadow-md transition flex items-center justify-center"
             >
-              {step.step_order === allSteps.length ? '🏁 Selesaikan Sesi Kompos' : '✅ Selesai, Lanjut Langkah Berikutnya'}
+              {step.is_completed
+                ? '✅ Langkah Sudah Selesai'
+                : step.step_order === allSteps.length
+                  ? '🏁 Selesaikan Sesi Kompos'
+                  : '✅ Selesai, Lanjut Langkah Berikutnya'}
             </button>
+
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                disabled={!previousStep}
+                onClick={() => previousStep && router.push(`/composting/${sessionId}/step/${previousStep.id}`)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                ← Langkah Sebelumnya
+              </button>
+              <button
+                type="button"
+                disabled={!nextStep || !step.is_completed}
+                onClick={() => nextStep && router.push(`/composting/${sessionId}/step/${nextStep.id}`)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Langkah Berikutnya →
+              </button>
+            </div>
           </div>
 
           {/* KOLOM CHAT BOT SPESIFIK STEP (2/5 lebar) */}

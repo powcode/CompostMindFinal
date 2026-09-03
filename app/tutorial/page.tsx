@@ -27,7 +27,7 @@ export default async function TutorialPage() {
           {TUTORIAL_STEPS.map((step) => (
             <div
               key={step.stepNumber}
-              className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-xs transition-all hover:shadow-md flex flex-col gap-4"
+              className="interactive-card bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-xs flex flex-col gap-4"
             >
               {/* IMAGE CONTAINER */}
               <div
@@ -67,7 +67,7 @@ export default async function TutorialPage() {
           <div className="bg-slate-50/80 backdrop-blur-md p-2 rounded-2xl sm:bg-transparent sm:p-0">
             <Link
               href={isAuthenticated ? '/composting' : '/login'}
-              className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 text-center"
+              className="interactive-button w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 text-center"
             >
               <span>Mulai Composting Sekarang →</span>
             </Link>

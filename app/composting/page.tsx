@@ -14,11 +14,14 @@ interface SessionData {
   ingredients: { name: string; quantity: number }[];
 }
 
+const SESSIONS_PER_PAGE = 6;
+
 export default function CompostDashboardPage() {
   const router = useRouter();
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     async function fetchSessions() {
@@ -46,6 +49,7 @@ export default function CompostDashboardPage() {
         }
 
         setSessions(data?.data || []);
+        setCurrentPage(1);
       } catch (error: any) {
         console.error("Gagal mengambil riwayat sesi:", error?.message || error);
         setErrorMsg(error?.message || 'Terjadi kesalahan saat memuat data sesi.');
@@ -65,6 +69,12 @@ export default function CompostDashboardPage() {
   const handleSessionClick = (session: SessionData) => {
     router.push(`/composting/${session.id}`);
   };
+
+  const totalPages = Math.ceil(sessions.length / SESSIONS_PER_PAGE);
+  const paginatedSessions = sessions.slice(
+    (currentPage - 1) * SESSIONS_PER_PAGE,
+    currentPage * SESSIONS_PER_PAGE
+  );
 
   return (
     <div className="flex-1 w-full bg-slate-50 p-4 sm:p-6 lg:p-8 safe-bottom">
@@ -102,7 +112,7 @@ export default function CompostDashboardPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
-            {sessions.map((session) => (
+            {paginatedSessions.map((session) => (
               <SessionCard
                 key={session.id}
                 id={session.id}
@@ -113,6 +123,46 @@ export default function CompostDashboardPage() {
                 onClick={() => handleSessionClick(session)}
               />
             ))}
+            {totalPages > 1 && (
+              <div className="col-span-full flex flex-wrap items-center justify-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+                  disabled={currentPage === 1}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ← Sebelumnya
+                </button>
+
+                <div className="flex items-center gap-1" aria-label="Navigasi halaman sesi">
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
+                    <button
+                      key={page}
+                      type="button"
+                      aria-label={`Halaman ${page}`}
+                      aria-current={currentPage === page ? 'page' : undefined}
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-9 w-9 rounded-xl text-sm font-semibold transition ${
+                        currentPage === page
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+                  disabled={currentPage === totalPages}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Berikutnya →
+                </button>
+              </div>
+            )}
           </div>
         )}
 

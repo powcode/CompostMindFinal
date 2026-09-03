@@ -48,7 +48,7 @@ export default function SessionCard({
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all cursor-pointer overflow-hidden flex flex-col active:scale-[0.99] group"
+      className="interactive-card bg-white rounded-3xl border border-slate-200/80 shadow-xs cursor-pointer overflow-hidden flex flex-col active:scale-[0.99] group"
     >
       <div className="p-4 sm:p-5 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
         <div>
