@@ -4,7 +4,6 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 export default function Navbar() {
@@ -64,7 +63,9 @@ export default function Navbar() {
                 onClick={handleBack}
                 className="interactive-button inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-xl font-semibold leading-none text-slate-700 shadow-sm hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
               >
-                <ArrowLeft aria-hidden="true" size={19} strokeWidth={2.5} />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
               </button>
             )}
 
