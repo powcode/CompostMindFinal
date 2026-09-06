@@ -530,7 +530,7 @@ export default function CompostSessionPage() {
                 value={chatInput} 
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Tulis pertanyaan..." 
-                className="flex-1 border border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                className="flex-1 border border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
               />
               <button 
                 type="submit" 

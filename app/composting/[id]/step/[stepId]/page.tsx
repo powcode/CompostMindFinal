@@ -256,7 +256,7 @@ export default function StepDetailPage() {
                 value={chatInput} 
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Tanya soal langkah ini..." 
-                className="flex-1 border border-gray-300 rounded-l-lg px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-green-500"
+                className="flex-1 border border-gray-300 rounded-l-lg px-2 py-2 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-500"
               />
               <button type="submit" className="bg-green-600 text-white px-3 rounded-r-lg font-medium text-xs hover:bg-green-700">Kirim</button>
             </form>
