@@ -1,7 +1,7 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
 import { TUTORIAL_STEPS } from '@/data/tutorial-steps'
+import TutorialCarousel from '@/components/TutorialCarousel'
 
 export default async function TutorialPage() {
   const supabase = await createClient()
@@ -9,7 +9,7 @@ export default async function TutorialPage() {
   const isAuthenticated = !!user
 
   return (
-    <div className="flex-1 w-full bg-slate-50 text-slate-800 py-6 sm:py-8 px-4 sm:px-6">
+    <div className="flex-1 w-full bg-slate-50 text-slate-800 py-6 sm:py-8 px-3 sm:px-6">
       <div className="max-w-3xl mx-auto space-y-6 sm:space-y-8 pb-20 sm:pb-8">
         
         {/* HEADER */}
@@ -22,45 +22,8 @@ export default async function TutorialPage() {
           </p>
         </div>
 
-        {/* STEP CARDS */}
-        <div className="space-y-6">
-          {TUTORIAL_STEPS.map((step) => (
-            <div
-              key={step.stepNumber}
-              className="interactive-card bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-xs flex flex-col gap-4"
-            >
-              {/* IMAGE CONTAINER */}
-              <div
-                className="w-full max-w-full rounded-xl overflow-hidden bg-emerald-50 border border-slate-100 shrink-0"
-              >
-                <Image
-                  src={step.image}
-                  alt={step.title}
-                  width={step.width}
-                  height={step.height}
-                  loading="eager"
-                  sizes="(max-width: 768px) calc(100vw - 2rem), 720px"
-                  className="block w-full max-w-full h-auto"
-                />
-              </div>
-
-              {/* DETAILS */}
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-                  {step.stepNumber}
-                </div>
-                <div className="space-y-1">
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-                    {step.title}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    {step.desc}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* STEP CAROUSEL */}
+        <TutorialCarousel steps={TUTORIAL_STEPS} />
 
         {/* STICKY CTA BUTTON FOR MOBILE */}
         <div className="sticky bottom-4 sm:relative sm:bottom-0 z-30 pt-2">

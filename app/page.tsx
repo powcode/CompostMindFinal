@@ -20,9 +20,6 @@ export default function HomePage() {
   const [showModal, setShowModal] = useState(false);
   const [detectedItems, setDetectedItems] = useState<DetectedItem[]>([]);
 
-  // State Tab untuk Mobile / Navigation View
-  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'tips'>('home');
-
   // Refs untuk Live Camera
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -61,7 +58,7 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    if (inputMode === 'camera' && !imagePreview && activeTab === 'home') {
+    if (inputMode === 'camera' && !imagePreview) {
       const timer = window.setTimeout(() => {
         void startCamera();
       }, 0);
@@ -74,7 +71,7 @@ export default function HomePage() {
 
     stopCamera();
     return undefined;
-  }, [inputMode, imagePreview, activeTab]);
+  }, [inputMode, imagePreview]);
 
   // Handle Tombol "Jepret / Capture"
   const handleCapture = () => {
@@ -283,50 +280,13 @@ export default function HomePage() {
       {/* CANVAS SENSE (HIDDEN) */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* SUB-NAVBAR TABS FOR HOME / HISTORY / TIPS */}
-      <div className="bg-white/60 backdrop-blur-sm border-b border-slate-200/60 sticky top-16 z-30">
-        <div className="max-w-5xl mx-auto px-4 flex justify-center sm:justify-start gap-2 py-2.5">
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
-              activeTab === 'home'
-                ? 'bg-emerald-100 text-emerald-800 shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <span>🏠</span> Beranda Scanner
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
-              activeTab === 'history'
-                ? 'bg-emerald-100 text-emerald-800 shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <span>🕐</span> Riwayat Scan
-          </button>
-          <button
-            onClick={() => setActiveTab('tips')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 ${
-              activeTab === 'tips'
-                ? 'bg-emerald-100 text-emerald-800 shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <span>🌿</span> Panduan Kompos
-          </button>
-        </div>
-      </div>
-
       {/* MAIN CONTAINER */}
       <main className="max-w-5xl mx-auto px-4 py-6 sm:py-10 flex-1 w-full space-y-8">
         
         {/* ========================================== */}
         {/* TAB 1: HOME PAGE (SCANNER)                 */}
         {/* ========================================== */}
-        {activeTab === 'home' && (
-          <div className="space-y-8 animate-in fade-in duration-300">
+        <div className="space-y-8 animate-in fade-in duration-300">
             
             {/* HERO TITLE HEADER */}
             <div className="text-center max-w-2xl mx-auto space-y-3">
@@ -521,101 +481,7 @@ export default function HomePage() {
               </div>
             </div>
 
-          </div>
-        )}
-
-        {/* ========================================== */}
-        {/* TAB 2: HISTORY                             */}
-        {/* ========================================== */}
-        {activeTab === 'history' && (
-          <div className="space-y-6 max-w-3xl mx-auto animate-in fade-in duration-300">
-            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-sm text-center space-y-4">
-              <div className="w-16 h-16 mx-auto bg-slate-100 rounded-2xl flex items-center justify-center text-3xl">
-                📋
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">Riwayat Sesi Pengomposan</h2>
-                <p className="text-slate-500 text-sm max-w-md mx-auto mt-1">
-                  Lihat daftar analisis dan progres pembuatan kompos yang sudah pernah kamu buat.
-                </p>
-              </div>
-              <div className="pt-2">
-                <button
-                  onClick={() => router.push('/composting')}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition-all"
-                >
-                  Buka Halaman Riwayat Sesi →
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================== */}
-        {/* TAB 3: TIPS                                */}
-        {/* ========================================== */}
-        {activeTab === 'tips' && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="text-center max-w-xl mx-auto space-y-2">
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-                Tips Pembuatan Kompos 🌿
-              </h2>
-              <p className="text-slate-600 text-sm">
-                Pelajari racikan bahan hijau (nitrogen) dan bahan cokelat (karbon) agar kompos sukses tanpa bau!
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2 hover:shadow-md transition-shadow">
-                <div className="text-3xl">🍌</div>
-                <h3 className="font-bold text-slate-900 text-base">Sisa Buah & Sayur</h3>
-                <p className="text-slate-600 text-xs leading-relaxed">
-                  Bahan Hijau (Nitrogen). Potong kecil-kecil agar lebih cepat terurai oleh mikroba tanah.
-                </p>
-              </div>
-
-              <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2 hover:shadow-md transition-shadow">
-                <div className="text-3xl">📰</div>
-                <h3 className="font-bold text-slate-900 text-base">Kardus & Kertas Bekas</h3>
-                <p className="text-slate-600 text-xs leading-relaxed">
-                  Bahan Cokelat (Karbon). Robek kecil kardus non-glossy untuk menyerap kelembapan berlebih.
-                </p>
-              </div>
-
-              <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2 hover:shadow-md transition-shadow">
-                <div className="text-3xl">☕</div>
-                <h3 className="font-bold text-slate-900 text-base">Ampas Kopi & Teh</h3>
-                <p className="text-slate-600 text-xs leading-relaxed">
-                  Sangat disukai cacing tanah dan menambah unsur hara penting untuk media tanam.
-                </p>
-              </div>
-
-              <div className="bg-white p-6 rounded-3xl border border-rose-100 bg-rose-50/20 shadow-xs space-y-2 hover:shadow-md transition-shadow">
-                <div className="text-3xl">🚫</div>
-                <h3 className="font-bold text-rose-900 text-base">Hindari Bahan Ini</h3>
-                <p className="text-rose-700/80 text-xs leading-relaxed">
-                  Daging, minyak, susu, dan kotoran hewan peliharaan karena dapat mengundang hama dan bau busuk.
-                </p>
-              </div>
-
-              <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2 hover:shadow-md transition-shadow">
-                <div className="text-3xl">💧</div>
-                <h3 className="font-bold text-slate-900 text-base">Menjaga Kelembapan</h3>
-                <p className="text-slate-600 text-xs leading-relaxed">
-                  Pastikan kompos lembap seperti spons yang diperas. Jika terlalu kering, percikkan sedikit air.
-                </p>
-              </div>
-
-              <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2 hover:shadow-md transition-shadow">
-                <div className="text-3xl">🔄</div>
-                <h3 className="font-bold text-slate-900 text-base">Aduk Secara Berkala</h3>
-                <p className="text-slate-600 text-xs leading-relaxed">
-                  Aduk tumpukan kompos 1–2 minggu sekali untuk memberikan pasokan oksigen yang cukup.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
 
       </main>
 

@@ -2,32 +2,14 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { useState, type ReactNode } from 'react';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-
-    const initAuth = async () => {
-      const { data } = await supabase.auth.getUser();
-      setIsAuthenticated(Boolean(data.user));
-    };
-
-    initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(Boolean(session?.user));
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   if (pathname === '/login' || pathname === '/register') return null;
 
@@ -49,6 +31,7 @@ export default function Navbar() {
       label: 'Riwayat Sesi',
       isActive: pathname?.startsWith('/composting') ?? false,
     },
+    { href: '/tutorial', icon: '🌿', label: 'Panduan Kompos', isActive: pathname === '/tutorial' },
   ];
 
   return (
@@ -70,7 +53,13 @@ export default function Navbar() {
             )}
 
             <Link href="/" className="interactive-button flex items-center gap-2 active:opacity-70">
-              <span className="rounded-xl bg-emerald-100 p-1.5 text-lg text-emerald-700">🌱</span>
+              <Image
+                src="/assets/logo.png"
+                alt="Logo CompostMind"
+                className="h-10 w-10 object-contain"
+                width={40}
+                height={40}
+              />
               <span className="text-xl font-black tracking-tight text-slate-900">
                 Compost<span className="text-emerald-600">Mind</span>
               </span>
@@ -89,18 +78,6 @@ export default function Navbar() {
                 />
               ))}
 
-              {isAuthenticated && (
-                <NavLink
-                  href="/tutorial"
-                  icon={
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-300 bg-emerald-100 text-[10px] font-bold text-emerald-800">
-                      ?
-                    </span>
-                  }
-                  label="Tutorial"
-                  isActive={pathname === '/tutorial'}
-                />
-              )}
             </nav>
 
             <button
@@ -136,20 +113,6 @@ export default function Navbar() {
                 />
               ))}
 
-              {isAuthenticated && (
-                <NavLink
-                  href="/tutorial"
-                  icon={
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-emerald-300 bg-emerald-100 text-[10px] font-bold text-emerald-800">
-                      ?
-                    </span>
-                  }
-                  label="Tutorial"
-                  isActive={pathname === '/tutorial'}
-                  mobile
-                  onClick={() => setIsMobileMenuOpen(false)}
-                />
-              )}
             </div>
           </nav>
         )}

@@ -2,6 +2,7 @@
 
 import { signIn } from '@/app/actions/auth'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useActionState } from 'react'
 
@@ -26,7 +27,13 @@ export default function LoginPage() {
         {/* HEADER ICON & TITLE */}
         <div className="text-center mb-6 space-y-2">
           <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold">
-            🍃
+            <Image
+              src="/assets/logo.png"
+              alt="Logo CompostMind"
+              width={40}
+              height={40}
+              className="h-10 w-10 object-contain"
+            />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Selamat Datang Kembali
