@@ -68,7 +68,7 @@ export default function TutorialCarousel({ steps }: TutorialCarouselProps) {
         <div className="flex items-center gap-2" aria-label="Pilih langkah tutorial">
           {steps.map((step, index) => (
             <button
-              key={step.stepNumber}
+              key={index}
               type="button"
               onClick={() => goToStep(index)}
               aria-label={`Buka langkah ${step.stepNumber}`}
