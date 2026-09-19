@@ -8,6 +8,32 @@ import { supabase } from '@/lib/supabase';
 interface Ingredient { id: string; name: string; quantity: number; condition: 'whole' | 'peel' | 'rotten'; }
 interface ChatMessage { role: 'user' | 'bot'; message: string; }
 
+function renderChatMessage(text: string, role: 'user' | 'bot') {
+  const urlPattern = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlPattern);
+
+  return parts.map((part, idx) => {
+    if (/^https?:\/\/[^\s]+$/i.test(part)) {
+      return (
+        <a
+          key={idx}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`underline break-all font-medium transition-colors inline-block max-w-full ${
+            role === 'user'
+              ? 'text-white hover:text-emerald-100'
+              : 'text-emerald-600 hover:text-emerald-700'
+          }`}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 export default function CompostSessionPage() {
   const params = useParams();
   const router = useRouter();
@@ -485,7 +511,7 @@ export default function CompostSessionPage() {
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3.5 custom-scrollbar min-w-0">
               {chatMessages.length === 0 && (
                 <div className="text-center text-slate-400 text-xs mt-12 flex flex-col items-center px-4 space-y-2">
                   <div className="w-12 h-12 rounded-2xl bg-slate-200/60 flex items-center justify-center text-xl">
@@ -493,21 +519,21 @@ export default function CompostSessionPage() {
                   </div>
                   <p className="font-bold text-slate-600">Tanya sesuatu ke CompostBot!</p>
                   <p className="text-slate-400 italic">
-                    Contoh: "Apakah sisa nasi basi boleh dimasukkan ke dalam racikan kompos?"
+                    Contoh: &quot;Apakah sisa nasi basi boleh dimasukkan ke dalam racikan kompos?&quot;
                   </p>
                 </div>
               )}
 
               {chatMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div key={i} className={`w-full flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} min-w-0`}>
                   <div 
-                    className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
+                    className={`max-w-[88%] px-4 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] min-w-0 ${
                       msg.role === 'user' 
                         ? 'bg-emerald-600 text-white rounded-br-2xs shadow-xs' 
                         : 'bg-white border border-slate-200/80 text-slate-800 rounded-bl-2xs shadow-xs'
                     }`}
                   >
-                    {msg.message}
+                    {renderChatMessage(msg.message, msg.role)}
                   </div>
                 </div>
               ))}

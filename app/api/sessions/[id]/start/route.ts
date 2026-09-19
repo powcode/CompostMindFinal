@@ -56,6 +56,7 @@ export async function POST(
       title: step.title,
       instruction: step.instruction,
       expected_output: step.expected_output,
+      reference: Array.isArray(step.reference) ? step.reference : [],
       is_completed: false
     }));
 

@@ -70,6 +70,7 @@ export interface Database {
           title: string
           instruction: string
           expected_output: string
+          reference: Json | null
           is_completed: boolean
           created_at: string
         }
@@ -80,6 +81,7 @@ export interface Database {
           title: string
           instruction: string
           expected_output: string
+          reference?: Json | null
           is_completed?: boolean
           created_at?: string
         }
@@ -90,6 +92,7 @@ export interface Database {
           title?: string
           instruction?: string
           expected_output?: string
+          reference?: Json | null
           is_completed?: boolean
           created_at?: string
         }
