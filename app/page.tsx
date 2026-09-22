@@ -26,9 +26,7 @@ export default function HomePage() {
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ==========================================
   // LOGIKA LIVE CAMERA (getUserMedia)
-  // ==========================================
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -100,9 +98,7 @@ export default function HomePage() {
     }
   };
 
-  // ==========================================
   // LOGIKA UPLOAD FILE MANUAL
-  // ==========================================
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -125,9 +121,7 @@ export default function HomePage() {
     }
   };
 
-  // ==========================================
   // LOGIKA DETEKSI AI (YOLO)
-  // ==========================================
   const handleDetect = async () => {
     if (!imagePreview && !imageFile) return;
     setIsDetecting(true);
